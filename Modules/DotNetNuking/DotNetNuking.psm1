@@ -45,6 +45,8 @@ function Restore-DotNetNukeSite {
     [string]$oldDomain = ''
   );
   
+  # TODO: Switch $siteZip and $databaseBackup is $siteZip extension is .bak
+
   $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDotNetNukeVersion }
   $includeSource = $sourceVersion -ne ''
   New-DotNetNukeSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain -databaseOwner $databaseOwner -objectQualifier $objectQualifier
@@ -108,16 +110,19 @@ function New-DotNetNukeSite {
   }
   else {
     Restore-DotNetNukeDatabase $siteName $databaseBackup
+    if ($oldDomain -ne $null) {
+      Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalAlias] SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
+      Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalSettings] SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
+      # TODO: Update remaining .com aliases to .com.dev
+      # TODO: Add all aliases to host file and IIS
+    }
+
+    # TODO: Set SMTP to localhost
   }
   
   Invoke-Sqlcmd -Query "CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database master
   Invoke-Sqlcmd -Query "CREATE USER [IIS AppPool\$siteName] FOR LOGIN [IIS AppPool\$siteName];" -Database $siteName
   Invoke-Sqlcmd -Query "EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$siteName';" -Database $siteName
-  
-  if ($oldDomain -ne $null) {
-    Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalAlias] SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalSettings] SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
-  }
   
   Start-Process -FilePath http://$siteName
 }
