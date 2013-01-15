@@ -35,10 +35,6 @@ function Restore-DotNetNukeSite {
     [string]$siteZip,
     [parameter(Mandatory=$true,position=2)]
     [string]$databaseBackup,
-    [parameter(Mandatory=$false,position=3)]
-    [string]$objectQualifier = '',
-    [parameter(Mandatory=$false,position=4)]
-    [string]$databaseOwner = 'dbo',
     [parameter(Mandatory=$false)]
     [string]$sourceVersion = '',
     [parameter(Mandatory=$false)]
@@ -49,7 +45,7 @@ function Restore-DotNetNukeSite {
 
   $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDotNetNukeVersion }
   $includeSource = $sourceVersion -ne ''
-  New-DotNetNukeSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain -databaseOwner $databaseOwner -objectQualifier $objectQualifier
+  New-DotNetNukeSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain
 }
 
 function New-DotNetNukeSite {
@@ -60,9 +56,9 @@ function New-DotNetNukeSite {
     [string]$version = $defaultDotNetNukeVersion,
     [parameter(Mandatory=$false,position=2)]
     [bool]$includeSource = $true,
-    [parameter(Mandatory=$false,position=3)]
+    [parameter(Mandatory=$false)]
     [string]$objectQualifier = '',
-    [parameter(Mandatory=$false,position=4)]
+    [parameter(Mandatory=$false)]
     [string]$databaseOwner = 'dbo',
     [parameter(Mandatory=$false)]
     [string]$siteZip = $null,
@@ -91,25 +87,24 @@ function New-DotNetNukeSite {
   }
   &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip | Out-Null
 
-  [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
-  $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
-  $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
-  $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | % { $_.value = $connectionString }
-  $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier = $objectQualifier
-  $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner = $databaseOwner
-  $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
-
   Add-HostFileEntry $siteName
 
   New-WebAppPool $siteName
   New-Website $siteName -HostHeader $siteName -PhysicalPath C:\inetpub\wwwroot\$siteName\Website -ApplicationPool $siteName
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
   
+  [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
   if ($databaseBackup -eq $null) {
     New-DotNetNukeDatabase $siteName
   }
   else {
     Restore-DotNetNukeDatabase $siteName $databaseBackup
+
+    $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier
+    $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner
+    $objectQualifier = $objectQualifier.TrimEnd('_')
+    $databaseOwner = $databaseOwner.TrimEnd('.')
+
     if ($oldDomain -ne $null) {
       Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalAlias] SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
       Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalSettings] SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
@@ -119,6 +114,13 @@ function New-DotNetNukeSite {
 
     # TODO: Set SMTP to localhost
   }
+
+  $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
+  $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
+  $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | % { $_.value = $connectionString }
+  $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier = $objectQualifier
+  $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner = $databaseOwner
+  $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
   
   Invoke-Sqlcmd -Query "CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database master
   Invoke-Sqlcmd -Query "CREATE USER [IIS AppPool\$siteName] FOR LOGIN [IIS AppPool\$siteName];" -Database $siteName
