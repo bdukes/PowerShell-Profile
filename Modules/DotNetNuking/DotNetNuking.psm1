@@ -79,7 +79,7 @@ function New-DotNetNukeSite {
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
   if ($includeSource -eq $true) {
-    &7za x -oC:\inetpub\wwwroot\$siteName "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip" 
+    &7za x -oC:\inetpub\wwwroot\$siteName "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip" | Out-Null
     cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
     ls C:\inetpub\wwwroot\$siteName\*.sln | % { Set-Content $_ ((Get-Content $_) -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"") }
   }
@@ -87,7 +87,7 @@ function New-DotNetNukeSite {
   if ($siteZip -eq $null) { 
     $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
   }
-  &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip
+  &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip | Out-Null
 
   [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
