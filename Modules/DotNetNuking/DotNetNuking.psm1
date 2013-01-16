@@ -3,7 +3,6 @@ Set-StrictMode -Version Latest
 Push-Location
 
 Import-Module Add-HostFileEntry
-Import-Module Xml-Utils
 Import-Module WebAdministration
 Import-Module SQLPS -DisableNameChecking
 
