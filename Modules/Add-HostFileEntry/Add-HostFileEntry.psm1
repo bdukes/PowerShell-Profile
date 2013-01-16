@@ -19,3 +19,5 @@ function Add-HostFileEntry {
 		Add-Content -Path $hostsLocation -Value "$ipAddress         $hostName";
 	}
 }
+
+Export-ModuleMember Add-HostFileEntry

@@ -71,3 +71,5 @@ function Set-ModifiedTime {
     }
   }
 }
+
+Export-ModuleMember Set-ModifiedTime

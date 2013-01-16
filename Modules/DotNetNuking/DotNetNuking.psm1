@@ -186,3 +186,7 @@ function Restore-DotNetNukeDatabase {
     write-host $_.Exception
   }
 }
+
+Export-ModuleMember Remove-DotNetNukeSite
+Export-ModuleMember New-DotNetNukeSite
+Export-ModuleMember Restore-DotNetNukeSite
