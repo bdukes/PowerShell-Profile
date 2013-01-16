@@ -25,12 +25,15 @@ function Remove-DotNetNukeSite {
   if (Test-Path IIS:\AppPools\$siteName) { Remove-WebAppPool $siteName }
   if (Test-Path C:\inetpub\wwwroot\$siteName) { Remove-Item C:\inetpub\wwwroot\$siteName -Recurse -Force }
 
-  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\$(Encode-SQLName $siteName)") { 
+  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)") { 
     Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance . -Database master
     Invoke-Sqlcmd -Query "DROP DATABASE [$siteName];" -ServerInstance . -Database master
   }
 
-  # TODO: Remove database login
+  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")") { 
+    Invoke-Sqlcmd -Query "DROP LOGIN [IIS AppPool\$siteName];" -Database master
+  }
+
   # TODO: Remove host file entry
 
 <#
