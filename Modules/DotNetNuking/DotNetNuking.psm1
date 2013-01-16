@@ -27,6 +27,9 @@ function Remove-DotNetNukeSite {
   Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance . -Database master
   Invoke-Sqlcmd -Query "DROP DATABASE [$siteName];" -ServerInstance . -Database master
 
+  # TODO: Remove database login
+  # TODO: Remove host file entry
+
 <#
 .SYNOPSIS
     Destroys a DotNetNuke site
@@ -118,6 +121,8 @@ function New-DotNetNukeSite {
 
   New-WebAppPool $siteName
   New-Website $siteName -HostHeader $siteName -PhysicalPath C:\inetpub\wwwroot\$siteName\Website -ApplicationPool $siteName
+  # TODO: Setup SSL cert & binding
+
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
   
   [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
