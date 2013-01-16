@@ -26,6 +26,15 @@ function Remove-DotNetNukeSite {
   rmdir C:\inetpub\wwwroot\$siteName -Recurse -Force
   Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance . -Database master
   Invoke-Sqlcmd -Query "DROP DATABASE [$siteName];" -ServerInstance . -Database master
+
+<#
+.SYNOPSIS
+    Destroys a DotNetNuke site
+.DESCRIPTION
+    Destroys a DotNetNuke site, removing it from the file system, IIS, and the database
+.PARAMETER siteName
+    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+#>
 }
 
 function Restore-DotNetNukeSite {
@@ -47,6 +56,23 @@ function Restore-DotNetNukeSite {
   $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDotNetNukeVersion }
   $includeSource = $sourceVersion -ne ''
   New-DotNetNukeSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain
+
+<#
+.SYNOPSIS
+    Restores a backup of a DotNetNuke site
+.DESCRIPTION
+    Restores a DotNetNuke site from a file system zip and database backup
+.PARAMETER siteName
+    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+.PARAMETER siteZip
+    The full path to the zip (any format that 7-Zip can expand) of the site's file system
+.PARAMETER databaseBackup
+    The full path to the database backup (.bak file).  This must be in a location to which SQL Server has access
+.PARAMETER sourceVersion
+    If specified, the DNN source for this version will be included with the site
+.PARAMETER oldDomain
+    If specified, the Portal Alias table will be updated to replace the old site domain with the new site domain
+#>
 }
 
 function New-DotNetNukeSite {
@@ -128,6 +154,29 @@ function New-DotNetNukeSite {
   Invoke-Sqlcmd -Query "EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$siteName';" -Database $siteName
   
   Start-Process -FilePath http://$siteName
+
+<#
+.SYNOPSIS
+    Creates a DotNetNuke site
+.DESCRIPTION
+    Creates a DotNetNuke site, either from a file system zip and database backup, or a new installation
+.PARAMETER siteName
+    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+.PARAMETER version
+    The DotNetNuke version
+.PARAMETER includeSource
+    Whether to include the DNN source files
+.PARAMETER objectQualifier
+    The database object qualifier
+.PARAMETER databaseOwner
+    The database schema
+.PARAMETER databaseBackup
+    The full path to the database backup (.bak file).  This must be in a location to which SQL Server has access
+.PARAMETER sourceVersion
+    If specified, the DNN source for this version will be included with the site
+.PARAMETER oldDomain
+    If specified, the Portal Alias table will be updated to replace the old site domain with the new site domain
+#>
 }
 
 function New-DotNetNukeDatabase {
