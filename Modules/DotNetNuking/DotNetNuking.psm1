@@ -172,9 +172,10 @@ function New-DotNetNukeSite {
   Write-Host "Updating web.config with connection string and data provider attributes"
   $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
   
-
-  Write-Host "Creating SQL Server login for IIS AppPool\$siteName"
-  Invoke-Sqlcmd -Query "CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database master
+  if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) { 
+    Write-Host "Creating SQL Server login for IIS AppPool\$siteName"
+    Invoke-Sqlcmd -Query "CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database master
+  }
   Write-Host "Creating SQL Server user"
   Invoke-Sqlcmd -Query "CREATE USER [IIS AppPool\$siteName] FOR LOGIN [IIS AppPool\$siteName];" -Database $siteName
   Write-Host "Adding SQL Server user to db_owner role"
