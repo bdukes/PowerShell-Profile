@@ -132,19 +132,21 @@ function New-DotNetNukeSite {
   else {
     Restore-DotNetNukeDatabase $siteName $databaseBackup
 
-    $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier
-    $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner
-    $objectQualifier = $objectQualifier.TrimEnd('_')
-    $databaseOwner = $databaseOwner.TrimEnd('.')
+    $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
+    $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
 
     if ($oldDomain -ne $null) {
-      Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalAlias] SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
-      Invoke-Sqlcmd -Query "UPDATE ${databaseOwner}.[${objectQualifier}PortalSettings] SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
+      Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
+      Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
       # TODO: Update remaining .com aliases to .com.dev
       # TODO: Add all aliases to host file and IIS
     }
 
-    # TODO: Set SMTP to localhost
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'SMTPEnableSSL'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database $siteName
   }
 
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
@@ -238,6 +240,20 @@ function Restore-DotNetNukeDatabase {
   catch [System.Exception] {
     write-host $_.Exception
   }
+}
+
+function Get-DotNetNukeDatabaseObjectName {
+    param(
+        [parameter(Mandatory=$true,position=0)]
+        [string]$objectName, 
+        [parameter(Mandatory=$true,position=1)]
+        [string]$databaseOwner, 
+        [parameter(Mandatory=$false,position=2)]
+        [string]$objectQualifier
+    );
+
+    if ($objectQualifier -ne '') { $objectQualifier += '_' }
+    return $databaseOwner + ".[$objectQualifier$objectName]"
 }
 
 Export-ModuleMember Remove-DotNetNukeSite
