@@ -60,7 +60,11 @@ function Restore-DotNetNukeSite {
     [string]$oldDomain = ''
   );
   
-  # TODO: Switch $siteZip and $databaseBackup is $siteZip extension is .bak
+  $siteZipFile = Get-ChildItem $siteZip
+  if ($siteZipFile.Extension -eq '.bak') {
+    $siteZip = $databaseBackup
+    $databaseBackup = $siteZipFile.FullName
+  }
 
   $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDotNetNukeVersion }
   $includeSource = $sourceVersion -ne ''
