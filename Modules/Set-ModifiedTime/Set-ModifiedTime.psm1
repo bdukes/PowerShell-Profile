@@ -1,15 +1,4 @@
-#----------------------------------------------------------------
-# Set-ModifiedTime.ps1
-#----------------------------------------------------------------
-param
-(
-  [string]$filespec = $null,         # Files to touch
-  [DateTime]$datetime = ([DateTime]::Now), # Use DateTime STRING instead of current time.
-  [int]$forward = 0,                 # Modify the time by going forward SECONDS s.
-  [string]$reference = $null,        # Use this file's time instead of current time.
-  [bool]$only_modification = $false, # Change only the modification time.
-  [bool]$only_access = $false        # Change only the access time
-);
+Set-StrictMode -Version Latest
 
 #----------------------------------------------------------------
 # Function Set-ModifiedTime
@@ -82,4 +71,3 @@ function Set-ModifiedTime {
     }
   }
 }
-

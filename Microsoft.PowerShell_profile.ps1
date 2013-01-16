@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 Import-Module Pscx -RequiredVersion 3.0.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
 
 Import-Module Set-ModifiedTime

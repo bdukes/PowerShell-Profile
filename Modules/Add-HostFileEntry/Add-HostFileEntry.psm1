@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 function Add-HostFileEntry {
   param(
     [parameter(Mandatory=$true,position=0)]

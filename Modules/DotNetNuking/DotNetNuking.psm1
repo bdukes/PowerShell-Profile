@@ -1,3 +1,5 @@
+Set-StrictMode -Version Latest
+
 Push-Location
 
 Import-Module Add-HostFileEntry
