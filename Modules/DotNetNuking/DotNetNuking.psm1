@@ -138,7 +138,7 @@ function New-DotNetNukeSite {
   New-WebAppPool $siteName
   Write-Host "Creating IIS site"
   New-Website $siteName -HostHeader $siteName -PhysicalPath C:\inetpub\wwwroot\$siteName\Website -ApplicationPool $siteName
-  # TODO: Setup SSL cert & binding
+  # TODO: Setup SSL cert & binding OR set SSLEnabled portal settings to false
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
