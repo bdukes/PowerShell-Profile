@@ -16,6 +16,6 @@ function GitTfs-Clone ($tfsPath, $gitPath) {
 }
 
 function Fix-GitTfsBindings () {
-    git config tfs-remote.default.legacy-urls http://tfs2010.etg-inc.net:8080/tfs
-    git config tfs-remote.default.url http://tfs.etg-inc.net:8080/tfs
+    git config tfs-remote.default.legacy-urls http://tfs2010.etg-inc.net:8080/tfs/Engage%20TFS%202010
+    git config tfs-remote.default.url http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010
 }
