@@ -8,7 +8,7 @@ Import-Module SQLPS -DisableNameChecking
 
 Pop-Location
 
-$defaultDotNetNukeVersion = '7.0.1'
+$defaultDotNetNukeVersion = '7.0.2'
 
 function Remove-DotNetNukeSite {
   param(
@@ -101,11 +101,11 @@ function New-DotNetNukeSite {
     [parameter(Mandatory=$false)]
     [string]$databaseOwner = 'dbo',
     [parameter(Mandatory=$false)]
-    [string]$siteZip = $null,
+    [string]$siteZip = '',
     [parameter(Mandatory=$false)]
-    [string]$databaseBackup = $null,
+    [string]$databaseBackup = '',
     [parameter(Mandatory=$false)]
-    [string]$oldDomain = $null
+    [string]$oldDomain = ''
   );
 
   if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
@@ -116,19 +116,23 @@ function New-DotNetNukeSite {
   $v = New-Object System.Version($version)
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
+  if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
   if ($includeSource -eq $true) {
     Write-Host "Extracting DNN $formattedVersion source"
-    &7za x -oC:\inetpub\wwwroot\$siteName "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip" | Out-Null
+    $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
+    if (-not (Test-Path $sourcePath)) { Write-Error "Source package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN $formattedVersion source" -CategoryTargetName $sourcePath -TargetObject $sourcePath -CategoryTargetType ".zip file" -CategoryReason "File does not exist" }
+    &7za x -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
     cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
     Write-Host "Updating site URL in sln files"
     ls C:\inetpub\wwwroot\$siteName\*.sln | % { Set-Content $_ ((Get-Content $_) -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"") }
   }
   
-  if ($siteZip -eq $null) { 
+  if ($siteZip -eq '') { 
     $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
   }
   Write-Host "Extracting DNN site"
+  if (-not (Test-Path $siteZip)) { Write-Error "Site package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN site" -CategoryTargetName $siteZip -TargetObject $siteZip -CategoryTargetType ".zip file" -CategoryReason "File does not exist" }
   &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip | Out-Null
 
   Write-Host "Creating HOSTS file entry for $siteName"
@@ -144,7 +148,7 @@ function New-DotNetNukeSite {
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
   
   [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
-  if ($databaseBackup -eq $null) {
+  if ($databaseBackup -eq '') {
     Write-Host "Creating new database"
     New-DotNetNukeDatabase $siteName
   }
@@ -155,7 +159,7 @@ function New-DotNetNukeSite {
     $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
 
-    if ($oldDomain -ne $null) {
+    if ($oldDomain -ne '') {
       Write-Host "Updating portal aliases"
       Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
       Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
