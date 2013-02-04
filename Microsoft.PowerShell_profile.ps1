@@ -13,6 +13,14 @@ function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
 
 function GitTfs-Clone ($tfsPath, $gitPath) {
     git tfs clone http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010 "$tfsPath" "$gitPath"
+    if ($gitPath) {
+      cd $gitPath
+    } else {
+      $repoPath = Split-Path $tfsPath -Leaf
+      cd $repoPath
+    }
+    
+    git config core.ignorecase true
 }
 
 function Fix-GitTfsBindings () {
