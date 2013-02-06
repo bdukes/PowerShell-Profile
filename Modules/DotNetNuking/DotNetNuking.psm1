@@ -21,17 +21,41 @@ function Remove-DotNetNukeSite {
     Break
   }
 
-  if (Test-Path IIS:\Sites\$siteName) { Remove-Website $siteName }
-  if (Test-Path IIS:\AppPools\$siteName) { Remove-WebAppPool $siteName }
-  if (Test-Path C:\inetpub\wwwroot\$siteName) { Remove-Item C:\inetpub\wwwroot\$siteName -Recurse -Force }
+  if (Test-Path IIS:\Sites\$siteName) { 
+    Write-Host "Removing $siteName website from IIS"
+    Remove-Website $siteName 
+  } else {
+    Write-Host "$siteName website not found in IIS"
+  }
+  
+  if (Test-Path IIS:\AppPools\$siteName) { 
+    Write-Host "Removing $siteName app pool from IIS"
+    Remove-WebAppPool $siteName 
+  } else {
+    Write-Host "$siteName app pool not found in IIS"
+  }
+  
+  if (Test-Path C:\inetpub\wwwroot\$siteName) { 
+    Write-Host "Deleting C:\inetpub\wwwroot\$siteName"
+    Remove-Item C:\inetpub\wwwroot\$siteName -Recurse -Force 
+  } else {
+    Write-Host "C:\inetpub\wwwroot\$siteName does not exist"
+  }
 
   if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)") { 
+    Write-Host "Closing connections to $siteName database"
     Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance . -Database master
+    Write-Host "Dropping $siteName database"
     Invoke-Sqlcmd -Query "DROP DATABASE [$siteName];" -ServerInstance . -Database master
+  } else {
+    Write-Host "$siteName database not found"
   }
 
   if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")") { 
+    Write-Host "Dropping IIS AppPool\$siteName database login"
     Invoke-Sqlcmd -Query "DROP LOGIN [IIS AppPool\$siteName];" -Database master
+  } else {
+    Write-Host "IIS AppPool\$siteName database login not found"
   }
 
   # TODO: Remove host file entry
