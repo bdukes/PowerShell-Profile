@@ -8,7 +8,7 @@ Import-Module SQLPS -DisableNameChecking
 
 Pop-Location
 
-$defaultDotNetNukeVersion = '7.0.2'
+$defaultDotNetNukeVersion = '7.0.3'
 
 function Remove-DotNetNukeSite {
   param(
