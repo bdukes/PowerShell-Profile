@@ -250,6 +250,7 @@ function New-DotNetNukeDatabase {
   );
   
   Invoke-Sqlcmd -Query "CREATE DATABASE [$siteName];" -Database master
+  Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET RECOVERY SIMPLE;" -Database master
 }
 
 function Restore-DotNetNukeDatabase {
