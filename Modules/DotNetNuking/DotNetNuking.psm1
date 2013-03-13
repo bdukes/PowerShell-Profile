@@ -166,7 +166,7 @@ function New-DotNetNukeSite {
   New-WebAppPool $siteName
   Write-Host "Creating IIS site"
   New-Website $siteName -HostHeader $siteName -PhysicalPath C:\inetpub\wwwroot\$siteName\Website -ApplicationPool $siteName
-  # TODO: Setup SSL cert & binding OR set SSLEnabled portal settings to false
+  # TODO: Setup SSL cert & binding (in lieu of setting SSLEnabled to False below)
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
@@ -191,13 +191,23 @@ function New-DotNetNukeSite {
       # TODO: Add all aliases to host file and IIS
     }
 
+    if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)\Tables\$databaseOwner.$(?: { $objectQualifier -ne '' } { $objectQualifier + '_' } { '' })CAT_Settings") {
+        Write-Host "Setting Catalook to test mode"
+        Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database $siteName
+    }
+
     Write-Host "Setting SMTP to localhost"
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database $siteName
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database $siteName
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'SMTPEnableSSL'" -Database $siteName
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database $siteName
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database $siteName
+
+    Write-Host "Turning off SSL"
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database $siteName
   }
+
+  # TODO: Watermark logo(s) so you know that you're on a dev version of the site
 
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
   $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
