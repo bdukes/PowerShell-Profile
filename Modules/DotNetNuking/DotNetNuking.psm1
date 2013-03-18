@@ -280,6 +280,14 @@ function Restore-DotNetNukeDatabase {
     [parameter(Mandatory=$true,position=1)]
     [string]$databaseBackup
   );
+
+  if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer') {
+    $backupDir = $(Get-ItemProperty -path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer' -name BackupDirectory).BackupDirectory
+    if ($backupDir) {
+        $sqlAcl = Get-Acl $backupDir
+        Set-Acl $databaseBackup $sqlAcl
+    }
+  }
   
   #based on http://redmondmag.com/articles/2009/12/21/automated-restores.aspx
   $server = New-Object Microsoft.SqlServer.Management.Smo.Server('(local)')
