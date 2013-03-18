@@ -191,7 +191,13 @@ function New-DotNetNukeSite {
       # TODO: Add all aliases to host file and IIS
     }
 
-    if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)\Tables\$databaseOwner.$(?: { $objectQualifier -ne '' } { $objectQualifier + '_' } { '' })CAT_Settings") {
+    if ($objectQualifier -ne '') {
+        $oq = $objectQualifier + '_'
+    } else {
+        $oq = ''
+    }
+    $catalookSettingsTablePath = "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)\Tables\$databaseOwner.${oq}CAT_Settings"
+    if (Test-Path $catalookSettingsTablePath) {
         Write-Host "Setting Catalook to test mode"
         Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database $siteName
     }
