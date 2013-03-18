@@ -211,6 +211,9 @@ function New-DotNetNukeSite {
 
     Write-Host "Turning off SSL"
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database $siteName
+
+    Write-Host "Setting all passwords to 'pass'"
+    Invoke-Sqlcmd -Query "UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database $siteName
   }
 
   # TODO: Watermark logo(s) so you know that you're on a dev version of the site
@@ -218,6 +221,7 @@ function New-DotNetNukeSite {
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
   $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
   $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | % { $_.value = $connectionString }
+  $webConfig.configuration['system.web'].membership.providers.add.minRequiredPasswordLength = '4'
   $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier = $objectQualifier
   $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner = $databaseOwner
   Write-Host "Updating web.config with connection string and data provider attributes"
