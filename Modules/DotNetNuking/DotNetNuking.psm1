@@ -209,6 +209,9 @@ function New-DotNetNukeSite {
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database $siteName
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database $siteName
 
+    Write-Host "Turning off event log buffer"
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database $siteName
+
     Write-Host "Turning off SSL"
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database $siteName
 
