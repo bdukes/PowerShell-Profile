@@ -224,10 +224,13 @@ function New-DotNetNukeSite {
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
   $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
   $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | % { $_.value = $connectionString }
-  $webConfig.configuration['system.web'].membership.providers.add.minRequiredPasswordLength = '4'
   $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier = $objectQualifier
   $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner = $databaseOwner
   Write-Host "Updating web.config with connection string and data provider attributes"
+  $webConfig.configuration['system.web'].membership.providers.add.minRequiredPasswordLength = '4'
+  Write-Host "Updating web.config to allow short passwords"
+  $webConfig.configuration['system.web'].compilation.debug = 'true'
+  Write-Host "Updating web.config to turn on debug mode"
   $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
   
   if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) { 
