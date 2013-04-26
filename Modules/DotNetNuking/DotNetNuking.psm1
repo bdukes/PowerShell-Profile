@@ -153,8 +153,12 @@ function New-DotNetNukeSite {
   }
   
   if ($siteZip -eq '') { 
-    $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
+    $siteFile = gci "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
+  } else {
+    $siteFile = gci $siteZip
   }
+
+  $siteZip = $siteFile.FullName
   Write-Host "Extracting DNN site"
   if (-not (Test-Path $siteZip)) { Write-Error "Site package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN site" -CategoryTargetName $siteZip -TargetObject $siteZip -CategoryTargetType ".zip file" -CategoryReason "File does not exist" }
   &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip | Out-Null
@@ -178,7 +182,7 @@ function New-DotNetNukeSite {
   }
   else {
     Write-Host "Restoring database"
-    Restore-DotNetNukeDatabase $siteName $databaseBackup
+    Restore-DotNetNukeDatabase $siteName (gci $databaseBackup).FullName
 
     $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
