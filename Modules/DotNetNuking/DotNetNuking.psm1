@@ -226,9 +226,10 @@ function New-DotNetNukeSite {
 
     Write-Host "Setting all passwords to 'pass'"
     Invoke-Sqlcmd -Query "UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database $siteName
-  }
 
-  # TODO: Watermark logo(s) so you know that you're on a dev version of the site
+    Write-Host "Watermarking site logo(s)"
+    Watermark-Logos $siteName
+  }
 
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
   $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
@@ -374,6 +375,23 @@ function Update-WizardUrls {
 
         $wizardXml.Save($wizardManifest.FullName)
     }
+}
+
+function Watermark-Logos {
+  param(
+    [parameter(Mandatory=$true,position=0)]
+    [string]$siteName
+  );
+
+  if (Get-Command "mogrify" -ErrorAction SilentlyContinue) {
+    $logos = Invoke-Sqlcmd -Query "SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DotNetNukeDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database $siteName
+    foreach ($logo in $logos) {
+        $logoFile = "C:\inetpub\wwwroot\$siteName\Website\" + $logo.Logo.Replace('/', '\')
+        mogrify -font Arial -pointsize 60 -draw "gravity Center fill #00ff00 text 0,0 DEV" -draw "gravity NorthEast fill #ff00ff text 0,0 DEV" -draw "gravity SouthWest fill #00ffff text 0,0 DEV" -draw "gravity NorthWest fill #ff0000 text 0,0 DEV" -draw "gravity SouthEast fill #0000ff text 0,0 DEV" $logoFile
+    }
+  } else {
+    Write-Warning "Could not watermark logos, because ImageMagick's mogrify command could not be found"
+  }
 }
 
 Export-ModuleMember Remove-DotNetNukeSite
