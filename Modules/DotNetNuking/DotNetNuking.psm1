@@ -206,6 +206,11 @@ function New-DotNetNukeSite {
         Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database $siteName
     }
 
+    if (Test-Path C:\inetpub\wwwroot\$siteName\Website\DesktopModules\EngageSports) {
+        Write-Host 'Updating Engage: Sports wizard URLs'
+        Update-WizardUrls $siteName
+    }
+
     Write-Host "Setting SMTP to localhost"
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database $siteName
     Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database $siteName
@@ -350,6 +355,25 @@ function Get-DotNetNukeDatabaseObjectName {
 
     if ($objectQualifier -ne '') { $objectQualifier += '_' }
     return $databaseOwner + ".[$objectQualifier$objectName]"
+}
+
+function Update-WizardUrls {
+    param(
+        [parameter(Mandatory=$true,position=0)]
+        [string]$siteName
+    );
+
+    $uri = $null
+    foreach ($wizardManifest in (ls C:\inetpub\wwwroot\$siteName\Website\DesktopModules\EngageSports\*Wizard*.xml)) {
+        [xml]$wizardXml = Get-Content $wizardManifest
+        foreach($urlNode in $wizardXml.GetElementsByTagName("NextUrl")) {
+            if ([System.Uri]::TryCreate([string]$urlNode.InnerText, [System.UriKind]::Absolute, [ref] $uri)) {
+                $urlNode.InnerText = "http://$siteName" + $uri.AbsolutePath
+            } 
+        }
+
+        $wizardXml.Save($wizardManifest.FullName)
+    }
 }
 
 Export-ModuleMember Remove-DotNetNukeSite
