@@ -28,6 +28,12 @@ function Fix-GitTfsBindings () {
     git config tfs-remote.default.url http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010
 }
 
+function Open-BrowserstackTunnel ($hostName, $port = 80, $ssl = $false) {
+    $sslBit = 0
+    if ($ssl) { $sslBit = 1 }
+    java -jar c:\tools\BrowserStackTunnel.jar $env:browserStackTunnelKey "$hostName,$port,$sslBit"
+}
+
 Import-Module posh-git
 
 # Set up a simple prompt, adding the git prompt parts inside git repos
