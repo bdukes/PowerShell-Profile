@@ -4,6 +4,7 @@ Import-Module Pscx -RequiredVersion 3.0.0.0 -arg "$(Split-Path $profile -parent)
 
 Import-Module Set-ModifiedTime
 Set-Alias touch Set-ModifiedTime
+Set-Alias sudo Invoke-Elevated
 
 Import-VisualStudioVars 2012 amd64 
 
