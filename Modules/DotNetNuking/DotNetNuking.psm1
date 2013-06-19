@@ -136,6 +136,11 @@ function New-DotNetNukeSite {
     Write-Warning "You do not have Administrator rights to run this script!`nPlease re-run this script as an Administrator!"
     Break
   }
+
+  if (-not (Get-Command "7za" -ErrorAction SilentlyContinue)) {
+    Write-Warning "You must have the 7-Zip command line tool in your path to unzip the site"
+    Break
+  }
   
   $v = New-Object System.Version($version)
   $majorVersion = $v.Major
@@ -160,7 +165,11 @@ function New-DotNetNukeSite {
 
   $siteZip = $siteFile.FullName
   Write-Host "Extracting DNN site"
-  if (-not (Test-Path $siteZip)) { Write-Error "Site package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN site" -CategoryTargetName $siteZip -TargetObject $siteZip -CategoryTargetType ".zip file" -CategoryReason "File does not exist" }
+  if (-not (Test-Path $siteZip)) { 
+    Write-Error "Site package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN site" -CategoryTargetName $siteZip -TargetObject $siteZip -CategoryTargetType ".zip file" -CategoryReason "File does not exist" 
+    Break
+  }
+
   &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip | Out-Null
 
   Write-Host "Creating HOSTS file entry for $siteName"
