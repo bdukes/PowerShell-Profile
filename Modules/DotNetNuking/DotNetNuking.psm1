@@ -171,6 +171,13 @@ function New-DotNetNukeSite {
   }
 
   &7za x -y -oC:\inetpub\wwwroot\$siteName\Website $siteZip | Out-Null
+  
+  $unzippedFiles = (ls C:\inetpub\wwwroot\$siteName\Website)
+  if ($unzippedFiles.Length -eq 1) {
+    Write-Host 'Moving exported DNN files up a level' 
+    mv C:\inetpub\wwwroot\$siteName\Website\$unzippedFiles\* C:\inetpub\wwwroot\$siteName\Website -Force
+    rm C:\inetpub\wwwroot\$siteName\Website\$unzippedFiles -Force -Recurse
+  }
 
   Write-Host "Creating HOSTS file entry for $siteName"
   Add-HostFileEntry $siteName
