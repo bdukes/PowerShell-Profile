@@ -15,7 +15,8 @@ function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
     if ($domain -eq 'IIS APPPOOL') {
         Import-Module WebAdministration
         $sid = (Get-ItemProperty IIS:\AppPools\$username).ApplicationPoolSid
-        $user = New-Object System.Security.Principal.NTAccount($sid)
+        $identifier = New-Object System.Security.Principal.SecurityIdentifier($sid)
+        $user = $identifier.Translate([System.Security.Principal.NTAccount])
     } else {
         $user = New-Object System.Security.Principal.NTAccount($domain, $username)
     }
