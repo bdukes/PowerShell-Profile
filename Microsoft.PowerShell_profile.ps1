@@ -9,7 +9,22 @@ Set-Alias sudo Invoke-Elevated
 Import-VisualStudioVars 2012 amd64 
 
 function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
-    cmd /c icacls "$directory" /grant ("$domain\$username" + ':(OI)(CI)M') /t /c /q
+    $inherit = [system.security.accesscontrol.InheritanceFlags]"ContainerInherit, ObjectInherit"
+    $propagation = [system.security.accesscontrol.PropagationFlags]"None"
+
+    if ($domain -eq 'IIS APPPOOL') {
+        Import-Module WebAdministration
+        $sid = (Get-ItemProperty IIS:\AppPools\$username).ApplicationPoolSid
+        $user = New-Object System.Security.Principal.NTAccount($sid)
+    } else {
+        $user = New-Object System.Security.Principal.NTAccount($domain, $username)
+    }
+
+    $accessrule = New-Object system.security.AccessControl.FileSystemAccessRule($user, "Modify", $inherit, $propagation, "Allow")
+
+    $acl = Get-Acl $directory
+    $acl.AddAccessRule($accessrule)
+    set-acl -aclobject $acl $directory
 }
 
 function GitTfs-Clone ($tfsPath, $gitPath) {
