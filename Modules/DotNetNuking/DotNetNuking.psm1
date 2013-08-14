@@ -8,7 +8,7 @@ Import-Module SQLPS -DisableNameChecking
 
 Pop-Location
 
-$defaultDotNetNukeVersion = '7.0.6'
+$defaultDotNetNukeVersion = '7.1.1'
 
 function Remove-DotNetNukeSite {
   param(
@@ -195,6 +195,7 @@ function New-DotNetNukeSite {
   if ($databaseBackup -eq '') {
     Write-Host "Creating new database"
     New-DotNetNukeDatabase $siteName
+    # TODO: create schema if $databaseOwner has been passed in
   }
   else {
     Write-Host "Restoring database"
