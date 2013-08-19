@@ -8,9 +8,9 @@ Import-Module SQLPS -DisableNameChecking
 
 Pop-Location
 
-$defaultDotNetNukeVersion = '7.1.1'
+$defaultDNNVersion = '7.1.1'
 
-function Remove-DotNetNukeSite {
+function Remove-DNNSite {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName
@@ -62,15 +62,15 @@ function Remove-DotNetNukeSite {
 
 <#
 .SYNOPSIS
-    Destroys a DotNetNuke site
+    Destroys a DNN site
 .DESCRIPTION
-    Destroys a DotNetNuke site, removing it from the file system, IIS, and the database
+    Destroys a DNN site, removing it from the file system, IIS, and the database
 .PARAMETER siteName
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
 #>
 }
 
-function Restore-DotNetNukeSite {
+function Restore-DNNSite {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName,
@@ -90,15 +90,15 @@ function Restore-DotNetNukeSite {
     $databaseBackup = $siteZipFile.FullName
   }
 
-  $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDotNetNukeVersion }
+  $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDNNVersion }
   $includeSource = $sourceVersion -ne ''
-  New-DotNetNukeSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain
+  New-DNNSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain
 
 <#
 .SYNOPSIS
-    Restores a backup of a DotNetNuke site
+    Restores a backup of a DNN site
 .DESCRIPTION
-    Restores a DotNetNuke site from a file system zip and database backup
+    Restores a DNN site from a file system zip and database backup
 .PARAMETER siteName
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
 .PARAMETER siteZip
@@ -112,12 +112,12 @@ function Restore-DotNetNukeSite {
 #>
 }
 
-function New-DotNetNukeSite {
+function New-DNNSite {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName,
     [parameter(Mandatory=$false,position=1)]
-    [string]$version = $defaultDotNetNukeVersion,
+    [string]$version = $defaultDNNVersion,
     [parameter(Mandatory=$false,position=2)]
     [bool]$includeSource = $true,
     [parameter(Mandatory=$false)]
@@ -194,20 +194,20 @@ function New-DotNetNukeSite {
   [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
   if ($databaseBackup -eq '') {
     Write-Host "Creating new database"
-    New-DotNetNukeDatabase $siteName
+    New-DNNDatabase $siteName
     # TODO: create schema if $databaseOwner has been passed in
   }
   else {
     Write-Host "Restoring database"
-    Restore-DotNetNukeDatabase $siteName (gci $databaseBackup).FullName
+    Restore-DNNDatabase $siteName (gci $databaseBackup).FullName
 
     $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
 
     if ($oldDomain -ne '') {
       Write-Host "Updating portal aliases"
-      Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
-      Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
+      Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
+      Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
       # TODO: Update remaining .com aliases to .com.dev
       # TODO: Add all aliases to host file and IIS
     }
@@ -220,7 +220,7 @@ function New-DotNetNukeSite {
     $catalookSettingsTablePath = "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)\Tables\$databaseOwner.${oq}CAT_Settings"
     if (Test-Path $catalookSettingsTablePath) {
         Write-Host "Setting Catalook to test mode"
-        Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database $siteName
+        Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database $siteName
     }
 
     if (Test-Path C:\inetpub\wwwroot\$siteName\Website\DesktopModules\EngageSports) {
@@ -229,17 +229,17 @@ function New-DotNetNukeSite {
     }
 
     Write-Host "Setting SMTP to localhost"
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'SMTPEnableSSL'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'SMTPEnableSSL'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database $siteName
 
     Write-Host "Turning off event log buffer"
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database $siteName
 
     Write-Host "Turning off SSL"
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DotNetNukeDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database $siteName
+    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database $siteName
 
     Write-Host "Setting all passwords to 'pass'"
     Invoke-Sqlcmd -Query "UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database $siteName
@@ -274,13 +274,13 @@ function New-DotNetNukeSite {
 
 <#
 .SYNOPSIS
-    Creates a DotNetNuke site
+    Creates a DNN site
 .DESCRIPTION
-    Creates a DotNetNuke site, either from a file system zip and database backup, or a new installation
+    Creates a DNN site, either from a file system zip and database backup, or a new installation
 .PARAMETER siteName
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
 .PARAMETER version
-    The DotNetNuke version
+    The DNN version
 .PARAMETER includeSource
     Whether to include the DNN source files
 .PARAMETER objectQualifier
@@ -296,7 +296,7 @@ function New-DotNetNukeSite {
 #>
 }
 
-function New-DotNetNukeDatabase {
+function New-DNNDatabase {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName
@@ -306,7 +306,7 @@ function New-DotNetNukeDatabase {
   Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET RECOVERY SIMPLE;" -Database master
 }
 
-function Restore-DotNetNukeDatabase {
+function Restore-DNNDatabase {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName,
@@ -361,7 +361,7 @@ function Restore-DotNetNukeDatabase {
   }
 }
 
-function Get-DotNetNukeDatabaseObjectName {
+function Get-DNNDatabaseObjectName {
     param(
         [parameter(Mandatory=$true,position=0)]
         [string]$objectName, 
@@ -401,7 +401,7 @@ function Watermark-Logos {
   );
 
   if (Get-Command "mogrify" -ErrorAction SilentlyContinue) {
-    $logos = Invoke-Sqlcmd -Query "SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DotNetNukeDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database $siteName
+    $logos = Invoke-Sqlcmd -Query "SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DNNDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database $siteName
     foreach ($logo in $logos) {
         $logoFile = "C:\inetpub\wwwroot\$siteName\Website\" + $logo.Logo.Replace('/', '\')
         mogrify -font Arial -pointsize 60 -draw "gravity Center fill #00ff00 text 0,0 DEV" -draw "gravity NorthEast fill #ff00ff text 0,0 DEV" -draw "gravity SouthWest fill #00ffff text 0,0 DEV" -draw "gravity NorthWest fill #ff0000 text 0,0 DEV" -draw "gravity SouthEast fill #0000ff text 0,0 DEV" $logoFile
@@ -411,6 +411,6 @@ function Watermark-Logos {
   }
 }
 
-Export-ModuleMember Remove-DotNetNukeSite
-Export-ModuleMember New-DotNetNukeSite
-Export-ModuleMember Restore-DotNetNukeSite
+Export-ModuleMember Remove-DNNSite
+Export-ModuleMember New-DNNSite
+Export-ModuleMember Restore-DNNSite
