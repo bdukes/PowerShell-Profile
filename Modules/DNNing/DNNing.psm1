@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+Set-StrictMode -Version:Latest
 
 Push-Location
 
@@ -44,16 +44,16 @@ function Remove-DNNSite {
 
   if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)") { 
     Write-Host "Closing connections to $siteName database"
-    Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance . -Database master
+    Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance:. -Database:master
     Write-Host "Dropping $siteName database"
-    Invoke-Sqlcmd -Query "DROP DATABASE [$siteName];" -ServerInstance . -Database master
+    Invoke-Sqlcmd -Query:"DROP DATABASE [$siteName];" -ServerInstance:. -Database:master
   } else {
     Write-Host "$siteName database not found"
   }
 
   if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")") { 
     Write-Host "Dropping IIS AppPool\$siteName database login"
-    Invoke-Sqlcmd -Query "DROP LOGIN [IIS AppPool\$siteName];" -Database master
+    Invoke-Sqlcmd -Query:"DROP LOGIN [IIS AppPool\$siteName];" -Database:master
   } else {
     Write-Host "IIS AppPool\$siteName database login not found"
   }
@@ -92,7 +92,7 @@ function Restore-DNNSite {
 
   $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDNNVersion }
   $includeSource = $sourceVersion -ne ''
-  New-DNNSite $siteName -siteZip $siteZip -databaseBackup $databaseBackup -version $version -includeSource $includeSource -oldDomain $oldDomain
+  New-DNNSite $siteName -siteZip:$siteZip -databaseBackup:$databaseBackup -version:$version -includeSource:$includeSource -oldDomain:$oldDomain
 
 <#
 .SYNOPSIS
@@ -118,17 +118,11 @@ function New-DNNSite {
     [string]$siteName,
     [parameter(Mandatory=$false,position=1)]
     [string]$version = $defaultDNNVersion,
-    [parameter(Mandatory=$false,position=2)]
-    [bool]$includeSource = $true,
-    [parameter(Mandatory=$false)]
+    [switch]$includeSource = $true,
     [string]$objectQualifier = '',
-    [parameter(Mandatory=$false)]
     [string]$databaseOwner = 'dbo',
-    [parameter(Mandatory=$false)]
     [string]$siteZip = '',
-    [parameter(Mandatory=$false)]
     [string]$databaseBackup = '',
-    [parameter(Mandatory=$false)]
     [string]$oldDomain = ''
   );
 
@@ -149,7 +143,7 @@ function New-DNNSite {
   if ($includeSource -eq $true) {
     Write-Host "Extracting DNN $formattedVersion source"
     $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
-    if (-not (Test-Path $sourcePath)) { Write-Error "Source package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN $formattedVersion source" -CategoryTargetName $sourcePath -TargetObject $sourcePath -CategoryTargetType ".zip file" -CategoryReason "File does not exist" }
+    if (-not (Test-Path $sourcePath)) { Write-Error "Source package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     &7za x -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
     cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
@@ -166,7 +160,7 @@ function New-DNNSite {
   $siteZip = $siteFile.FullName
   Write-Host "Extracting DNN site"
   if (-not (Test-Path $siteZip)) { 
-    Write-Error "Site package does not exist" -Category ObjectNotFound -CategoryActivity "Extract DNN site" -CategoryTargetName $siteZip -TargetObject $siteZip -CategoryTargetType ".zip file" -CategoryReason "File does not exist" 
+    Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" 
     Break
   }
 
@@ -188,7 +182,7 @@ function New-DNNSite {
   Write-Host "Creating IIS app pool"
   New-WebAppPool $siteName
   Write-Host "Creating IIS site"
-  New-Website $siteName -HostHeader $siteName -PhysicalPath C:\inetpub\wwwroot\$siteName\Website -ApplicationPool $siteName
+  New-Website $siteName -HostHeader:$siteName -PhysicalPath:C:\inetpub\wwwroot\$siteName\Website -ApplicationPool:$siteName
   # TODO: Setup SSL cert & binding (in lieu of setting SSLEnabled to False below)
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
@@ -209,8 +203,8 @@ function New-DNNSite {
 
     if ($oldDomain -ne '') {
       Write-Host "Updating portal aliases"
-      Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database $siteName
-      Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database $siteName
+      Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database:$siteName
+      Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database:$siteName
       # TODO: Update remaining .com aliases to .com.dev
       # TODO: Add all aliases to host file and IIS
     }
@@ -223,7 +217,7 @@ function New-DNNSite {
     $catalookSettingsTablePath = "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)\Tables\$databaseOwner.${oq}CAT_Settings"
     if (Test-Path $catalookSettingsTablePath) {
         Write-Host "Setting Catalook to test mode"
-        Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database $siteName
+        Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database:$siteName
     }
 
     if (Test-Path C:\inetpub\wwwroot\$siteName\Website\DesktopModules\EngageSports) {
@@ -232,20 +226,20 @@ function New-DNNSite {
     }
 
     Write-Host "Setting SMTP to localhost"
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'SMTPEnableSSL'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database $siteName
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database $siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'localhost' WHERE SettingName = 'SMTPServer'" -Database:$siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '0' WHERE SettingName = 'SMTPAuthentication'" -Database:$siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'SMTPEnableSSL'" -Database:$siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database:$siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database:$siteName
 
     Write-Host "Turning off event log buffer"
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database $siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database:$siteName
 
     Write-Host "Turning off SSL"
-    Invoke-Sqlcmd -Query "UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database $siteName
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database:$siteName
 
     Write-Host "Setting all passwords to 'pass'"
-    Invoke-Sqlcmd -Query "UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database $siteName
+    Invoke-Sqlcmd -Query:"UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database:$siteName
 
     Write-Host "Watermarking site logo(s)"
     Watermark-Logos $siteName
@@ -265,15 +259,15 @@ function New-DNNSite {
   
   if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) { 
     Write-Host "Creating SQL Server login for IIS AppPool\$siteName"
-    Invoke-Sqlcmd -Query "CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database master
+    Invoke-Sqlcmd -Query:"CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database:master
   }
   Write-Host "Creating SQL Server user"
-  Invoke-Sqlcmd -Query "CREATE USER [IIS AppPool\$siteName] FOR LOGIN [IIS AppPool\$siteName];" -Database $siteName
+  Invoke-Sqlcmd -Query:"CREATE USER [IIS AppPool\$siteName] FOR LOGIN [IIS AppPool\$siteName];" -Database:$siteName
   Write-Host "Adding SQL Server user to db_owner role"
-  Invoke-Sqlcmd -Query "EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$siteName';" -Database $siteName
+  Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$siteName';" -Database:$siteName
   
   Write-Host "Launching http://$siteName"
-  Start-Process -FilePath http://$siteName
+  Start-Process -FilePath:http://$siteName
 
 <#
 .SYNOPSIS
@@ -305,8 +299,8 @@ function New-DNNDatabase {
     [string]$siteName
   );
   
-  Invoke-Sqlcmd -Query "CREATE DATABASE [$siteName];" -Database master
-  Invoke-Sqlcmd -Query "ALTER DATABASE [$siteName] SET RECOVERY SIMPLE;" -Database master
+  Invoke-Sqlcmd -Query:"CREATE DATABASE [$siteName];" -Database:master
+  Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET RECOVERY SIMPLE;" -Database:master
 }
 
 function Restore-DNNDatabase {
@@ -318,7 +312,7 @@ function Restore-DNNDatabase {
   );
 
   if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer') {
-    $backupDir = $(Get-ItemProperty -path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer' -name BackupDirectory).BackupDirectory
+    $backupDir = $(Get-ItemProperty -path:'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer' -name:BackupDirectory).BackupDirectory
     if ($backupDir) {
         $sqlAcl = Get-Acl $backupDir
         Set-Acl $databaseBackup $sqlAcl
@@ -403,8 +397,8 @@ function Watermark-Logos {
     [string]$siteName
   );
 
-  if (Get-Command "mogrify" -ErrorAction SilentlyContinue) {
-    $logos = Invoke-Sqlcmd -Query "SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DNNDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database $siteName
+  if (Get-Command "mogrify" -ErrorAction:SilentlyContinue) {
+    $logos = Invoke-Sqlcmd -Query:"SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DNNDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database:$siteName
     foreach ($logo in $logos) {
         $logoFile = "C:\inetpub\wwwroot\$siteName\Website\" + $logo.Logo.Replace('/', '\')
         mogrify -font Arial -pointsize 60 -draw "gravity Center fill #00ff00 text 0,0 DEV" -draw "gravity NorthEast fill #ff00ff text 0,0 DEV" -draw "gravity SouthWest fill #00ffff text 0,0 DEV" -draw "gravity NorthWest fill #ff0000 text 0,0 DEV" -draw "gravity SouthEast fill #0000ff text 0,0 DEV" $logoFile
