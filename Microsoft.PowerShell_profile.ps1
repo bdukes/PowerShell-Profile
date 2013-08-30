@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Import-Module Pscx -RequiredVersion 3.0.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
 
@@ -59,8 +59,11 @@ function prompt {
 
     # Reset color, which can be messed up by Enable-GitColors
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
-
-    Write-Host($pwd.ProviderPath) -nonewline
+    Write-Host ""
+    if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+        Write-Host '╠☇╣' -NoNewline -BackgroundColor Yellow -ForegroundColor Black
+    }
+    Write-Host "$($pwd.ProviderPath)" -NoNewline -BackgroundColor Blue -ForegroundColor White    
 
     Write-VcsStatus
 
