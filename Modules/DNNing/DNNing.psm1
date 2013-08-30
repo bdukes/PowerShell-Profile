@@ -170,9 +170,9 @@ function New-DNNSite {
   if ($unzippedFiles.Length -eq 1) {
     Write-Host 'Moving exported DNN files up a level' 
     # mv doesn't support overwriting directories, so cp is the workaround
-    cp C:\inetpub\wwwroot\$siteName\Extracted_Website\$unzippedFiles\* C:\inetpub\wwwroot\$siteName\Website -Force
+    cp C:\inetpub\wwwroot\$siteName\Extracted_Website\$unzippedFiles\* C:\inetpub\wwwroot\$siteName\Website -Force -Recurse
   } else {
-    cp C:\inetpub\wwwroot\$siteName\Extracted_Website\* C:\inetpub\wwwroot\$siteName\Website -Force
+    cp C:\inetpub\wwwroot\$siteName\Extracted_Website\* C:\inetpub\wwwroot\$siteName\Website -Force -Recurse
   }
   rm C:\inetpub\wwwroot\$siteName\Extracted_Website -Force -Recurse
 
