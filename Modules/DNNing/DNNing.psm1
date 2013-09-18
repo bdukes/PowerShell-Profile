@@ -15,34 +15,34 @@ function Remove-DNNSite {
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName
   );
-  
+ 
   if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Warning "You do not have Administrator rights to run this script!`nPlease re-run this script as an Administrator!"
     Break
   }
 
-  if (Test-Path IIS:\Sites\$siteName) { 
+  if (Test-Path IIS:\Sites\$siteName) {
     Write-Host "Removing $siteName website from IIS"
-    Remove-Website $siteName 
+    Remove-Website $siteName
   } else {
     Write-Host "$siteName website not found in IIS"
   }
-  
-  if (Test-Path IIS:\AppPools\$siteName) { 
+ 
+  if (Test-Path IIS:\AppPools\$siteName) {
     Write-Host "Removing $siteName app pool from IIS"
-    Remove-WebAppPool $siteName 
+    Remove-WebAppPool $siteName
   } else {
     Write-Host "$siteName app pool not found in IIS"
   }
-  
-  if (Test-Path C:\inetpub\wwwroot\$siteName) { 
+ 
+  if (Test-Path C:\inetpub\wwwroot\$siteName) {
     Write-Host "Deleting C:\inetpub\wwwroot\$siteName"
-    Remove-Item C:\inetpub\wwwroot\$siteName -Recurse -Force 
+    Remove-Item C:\inetpub\wwwroot\$siteName -Recurse -Force
   } else {
     Write-Host "C:\inetpub\wwwroot\$siteName does not exist"
   }
 
-  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)") { 
+  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)") {
     Write-Host "Closing connections to $siteName database"
     Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance:. -Database:master
     Write-Host "Dropping $siteName database"
@@ -51,7 +51,7 @@ function Remove-DNNSite {
     Write-Host "$siteName database not found"
   }
 
-  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")") { 
+  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")") {
     Write-Host "Dropping IIS AppPool\$siteName database login"
     Invoke-Sqlcmd -Query:"DROP LOGIN [IIS AppPool\$siteName];" -Database:master
   } else {
@@ -83,7 +83,7 @@ function Restore-DNNSite {
     [parameter(Mandatory=$false)]
     [string]$oldDomain = ''
   );
-  
+ 
   $siteZipFile = Get-ChildItem $siteZip
   if ($siteZipFile.Extension -eq '.bak') {
     $siteZip = $databaseBackup
@@ -135,7 +135,7 @@ function New-DNNSite {
     Write-Warning "You must have the 7-Zip command line tool in your path to unzip the site"
     Break
   }
-  
+ 
   $v = New-Object System.Version($version)
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
@@ -150,8 +150,8 @@ function New-DNNSite {
     Write-Host "Updating site URL in sln files"
     ls C:\inetpub\wwwroot\$siteName\*.sln | % { Set-Content $_ ((Get-Content $_) -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"") }
   }
-  
-  if ($siteZip -eq '') { 
+ 
+  if ($siteZip -eq '') {
     $siteFile = gci "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
   } else {
     $siteFile = gci $siteZip
@@ -159,22 +159,27 @@ function New-DNNSite {
 
   $siteZip = $siteFile.FullName
   Write-Host "Extracting DNN site"
-  if (-not (Test-Path $siteZip)) { 
-    Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" 
+  if (-not (Test-Path $siteZip)) {
+    Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist"
     Break
   }
 
-  &7za x -y -oC:\inetpub\wwwroot\$siteName\Extracted_Website $siteZip | Out-Null
-  
-  $unzippedFiles = @(ls C:\inetpub\wwwroot\$siteName\Extracted_Website)
+  $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
+  &7za x -y "-o$siteZipOutput" $siteZip | Out-Null
+ 
+  $from = $siteZipOutput
+  $unzippedFiles = @(ls $siteZipOutput)
   if ($unzippedFiles.Length -eq 1) {
-    Write-Host 'Moving exported DNN files up a level' 
-    # mv doesn't support overwriting directories, so cp is the workaround
-    cp C:\inetpub\wwwroot\$siteName\Extracted_Website\$unzippedFiles\* C:\inetpub\wwwroot\$siteName\Website -Force -Recurse
-  } else {
-    cp C:\inetpub\wwwroot\$siteName\Extracted_Website\* C:\inetpub\wwwroot\$siteName\Website -Force -Recurse
+    $from += "\$unzippedFiles"
   }
-  rm C:\inetpub\wwwroot\$siteName\Extracted_Website -Force -Recurse
+ 
+  # add * only if the directory already exists, based on https://groups.google.com/d/msg/microsoft.public.windows.powershell/iTEakZQQvh0/TLvql_87yzgJ
+  $to = "C:\inetpub\wwwroot\$siteName\Website"
+  $from += '/'
+  if (Test-Path $to -PathType Container) { $from += '*' }
+  cp $from $to -Force -Recurse
+ 
+  rm $siteZipOutput -Force -Recurse
 
   Write-Host "Creating HOSTS file entry for $siteName"
   Add-HostFileEntry $siteName
@@ -187,7 +192,7 @@ function New-DNNSite {
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
-  
+ 
   [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
   if ($databaseBackup -eq '') {
     Write-Host "Creating new database"
@@ -256,8 +261,8 @@ function New-DNNSite {
   $webConfig.configuration['system.web'].compilation.debug = 'true'
   Write-Host "Updating web.config to turn on debug mode"
   $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
-  
-  if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) { 
+ 
+  if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) {
     Write-Host "Creating SQL Server login for IIS AppPool\$siteName"
     Invoke-Sqlcmd -Query:"CREATE LOGIN [IIS AppPool\$siteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database:master
   }
@@ -265,7 +270,7 @@ function New-DNNSite {
   Invoke-Sqlcmd -Query:"CREATE USER [IIS AppPool\$siteName] FOR LOGIN [IIS AppPool\$siteName];" -Database:$siteName
   Write-Host "Adding SQL Server user to db_owner role"
   Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$siteName';" -Database:$siteName
-  
+ 
   Write-Host "Launching http://$siteName"
   Start-Process -FilePath:http://$siteName
 
@@ -298,7 +303,7 @@ function New-DNNDatabase {
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName
   );
-  
+ 
   Invoke-Sqlcmd -Query:"CREATE DATABASE [$siteName];" -Database:master
   Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET RECOVERY SIMPLE;" -Database:master
 }
@@ -318,23 +323,23 @@ function Restore-DNNDatabase {
         Set-Acl $databaseBackup $sqlAcl
     }
   }
-  
+ 
   #based on http://redmondmag.com/articles/2009/12/21/automated-restores.aspx
   $server = New-Object Microsoft.SqlServer.Management.Smo.Server('(local)')
   $dbRestore = New-Object Microsoft.SqlServer.Management.Smo.Restore
-  
+ 
   $dbRestore.Action = 'Database'
   $dbRestore.NoRecovery = $false
   $dbRestore.ReplaceDatabase = $true
   $dbRestore.Devices.AddDevice($databaseBackup, [Microsoft.SqlServer.Management.Smo.DeviceType]::File)
   $dbRestore.Database = $siteName
-   
+  
   $dbRestoreFile = New-Object Microsoft.SqlServer.Management.Smo.RelocateFile
   $dbRestoreLog = New-Object Microsoft.SqlServer.Management.Smo.RelocateFile
-  
+ 
   $logicalDataFileName = $siteName
   $logicalLogFileName = $siteName
-  
+ 
   foreach ($file in $dbRestore.ReadFileList($server)) {
     switch ($file.Type) {
       'D' { $logicalDataFileName = $file.LogicalName }
@@ -346,10 +351,10 @@ function Restore-DNNDatabase {
   $dbRestoreFile.PhysicalFileName = $server.Information.MasterDBPath + '\' + $siteName + '_Data.mdf'
   $dbRestoreLog.LogicalFileName = $logicalLogFileName
   $dbRestoreLog.PhysicalFileName = $server.Information.MasterDBLogPath + '\' + $siteName + '_Log.ldf'
-  
+ 
   $dbRestore.RelocateFiles.Add($dbRestoreFile) | Out-Null
   $dbRestore.RelocateFiles.Add($dbRestoreLog) | Out-Null
-  
+ 
   try {
     $dbRestore.SqlRestore($server)
   }
@@ -361,9 +366,9 @@ function Restore-DNNDatabase {
 function Get-DNNDatabaseObjectName {
     param(
         [parameter(Mandatory=$true,position=0)]
-        [string]$objectName, 
+        [string]$objectName,
         [parameter(Mandatory=$true,position=1)]
-        [string]$databaseOwner, 
+        [string]$databaseOwner,
         [parameter(Mandatory=$false,position=2)]
         [string]$objectQualifier
     );
@@ -384,7 +389,7 @@ function Update-WizardUrls {
         foreach($urlNode in $wizardXml.GetElementsByTagName("NextUrl")) {
             if ([System.Uri]::TryCreate([string]$urlNode.InnerText, [System.UriKind]::Absolute, [ref] $uri)) {
                 $urlNode.InnerText = "http://$siteName" + $uri.AbsolutePath
-            } 
+            }
         }
 
         $wizardXml.Save($wizardManifest.FullName)
