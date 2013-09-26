@@ -8,7 +8,7 @@ Import-Module SQLPS -DisableNameChecking
 
 Pop-Location
 
-$defaultDNNVersion = '7.1.1'
+$defaultDNNVersion = '7.1.2'
 
 function Remove-DNNSite {
   param(
