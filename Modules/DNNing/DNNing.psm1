@@ -112,6 +112,34 @@ function Restore-DNNSite {
 #>
 }
 
+function Upgrade-DNNSite {
+  param(
+    [parameter(Mandatory=$true,position=0)]
+    [string]$siteName,
+    [parameter(Mandatory=$false,position=1)]
+    [string]$version = $defaultDNNVersion,
+    [switch]$includeSource = $true
+  );
+ 
+  Extract-Packages -SiteName:$siteName -Version:$version -IncludeSource:$includeSource -UseUpgradePackage
+
+  Write-Host "Launching http://$siteName/Install/Install.aspx?mode=upgrade"
+  Start-Process -FilePath:http://$siteName/Install/Install.aspx?mode=upgrade
+
+<#
+.SYNOPSIS
+    Upgrades a DNN site
+.DESCRIPTION
+    Upgrades an existing DNN site to the specified version
+.PARAMETER siteName
+    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+.PARAMETER version
+    The version of DNN to which the site should be upgraded.  Defaults to $defaultDNNVersion
+.PARAMETER includeSource
+    Whether to include the DNN source
+#>
+}
+
 function New-DNNSite {
   param(
     [parameter(Mandatory=$true,position=0)]
@@ -131,60 +159,7 @@ function New-DNNSite {
     Break
   }
 
-  if (-not (Get-Command "7za" -ErrorAction SilentlyContinue)) {
-    Write-Warning "You must have the 7-Zip command line tool in your path to unzip the site"
-    Break
-  }
- 
-  $v = New-Object System.Version($version)
-  $majorVersion = $v.Major
-  $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
-  if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
-  if ($includeSource -eq $true) {
-    Write-Host "Extracting DNN $formattedVersion source"
-    $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
-    if (-not (Test-Path $sourcePath)) { Write-Error "Source package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
-    &7za x -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
-    Write-Host "Copying DNN $formattedVersion source symbols into install directory"
-    cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
-    Write-Host "Updating site URL in sln files"
-    ls C:\inetpub\wwwroot\$siteName\*.sln | % { 
-        $slnContent = (Get-Content $_);
-        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"";
-        $slnContent = $slnContent -replace '"http://localhost/DNN_Platform"', "`"http://$siteName`"";
-        Set-Content $_ $slnContent;
-    }
-  }
- 
-  if ($siteZip -eq '') {
-    $siteFile = gci "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
-  } else {
-    $siteFile = gci $siteZip
-  }
-
-  $siteZip = $siteFile.FullName
-  Write-Host "Extracting DNN site"
-  if (-not (Test-Path $siteZip)) {
-    Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist"
-    Break
-  }
-
-  $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
-  &7za x -y "-o$siteZipOutput" $siteZip | Out-Null
- 
-  $from = $siteZipOutput
-  $unzippedFiles = @(ls $siteZipOutput)
-  if ($unzippedFiles.Length -eq 1) {
-    $from += "\$unzippedFiles"
-  }
- 
-  # add * only if the directory already exists, based on https://groups.google.com/d/msg/microsoft.public.windows.powershell/iTEakZQQvh0/TLvql_87yzgJ
-  $to = "C:\inetpub\wwwroot\$siteName\Website"
-  $from += '/'
-  if (Test-Path $to -PathType Container) { $from += '*' }
-  cp $from $to -Force -Recurse
- 
-  rm $siteZipOutput -Force -Recurse
+  Extract-Packages -SiteName:$siteName -Version:$version -IncludeSource:$includeSource -SiteZip:$siteZip
 
   Write-Host "Creating HOSTS file entry for $siteName"
   Add-HostFileEntry $siteName
@@ -301,6 +276,75 @@ function New-DNNSite {
 .PARAMETER oldDomain
     If specified, the Portal Alias table will be updated to replace the old site domain with the new site domain
 #>
+}
+
+function Extract-Packages {
+  param(
+    [parameter(Mandatory=$true,position=0)]
+    [string]$siteName,
+    [parameter(Mandatory=$true,position=1)]
+    [string]$version,
+    [switch]$includeSource = $true,
+    [string]$siteZip = '',
+    [switch]$useUpgradePackage
+  );
+
+  if (-not (Get-Command "7za" -ErrorAction SilentlyContinue)) {
+    Write-Warning "You must have the 7-Zip command line tool in your path to unzip the site"
+    Break
+  }
+ 
+  $v = New-Object System.Version($version)
+  $majorVersion = $v.Major
+  $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
+  if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
+  if ($includeSource -eq $true) {
+    Write-Host "Extracting DNN $formattedVersion source"
+    $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
+    if (-not (Test-Path $sourcePath)) { Write-Error "Source package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
+    &7za x -y -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
+    Write-Host "Copying DNN $formattedVersion source symbols into install directory"
+    cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
+    Write-Host "Updating site URL in sln files"
+    ls C:\inetpub\wwwroot\$siteName\*.sln | % { 
+        $slnContent = (Get-Content $_);
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DNN_Platform"', "`"http://$siteName`""; # DNN 7.1.2+
+        Set-Content $_ $slnContent;
+    }
+  }
+ 
+  if ($siteZip -eq '') {
+    if ($useUpgradePackage) {
+        $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Upgrade.zip"
+    } else {
+        $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
+    }
+  }
+  
+  $siteZip = (gci $siteZip).FullName
+  Write-Host "Extracting DNN site"
+  if (-not (Test-Path $siteZip)) {
+    Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist"
+    Break
+  }
+
+  $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
+  &7za x -y "-o$siteZipOutput" $siteZip | Out-Null
+ 
+  $from = $siteZipOutput
+  $unzippedFiles = @(ls $siteZipOutput)
+  if ($unzippedFiles.Length -eq 1) {
+    $from += "\$unzippedFiles"
+  }
+ 
+  # add * only if the directory already exists, based on https://groups.google.com/d/msg/microsoft.public.windows.powershell/iTEakZQQvh0/TLvql_87yzgJ
+  $to = "C:\inetpub\wwwroot\$siteName\Website"
+  $from += '/'
+  if (Test-Path $to -PathType Container) { $from += '*' }
+  cp $from $to -Force -Recurse
+ 
+  rm $siteZipOutput -Force -Recurse
 }
 
 function New-DNNDatabase {
@@ -420,4 +464,5 @@ function Watermark-Logos {
 
 Export-ModuleMember Remove-DNNSite
 Export-ModuleMember New-DNNSite
+Export-ModuleMember Upgrade-DNNSite
 Export-ModuleMember Restore-DNNSite
