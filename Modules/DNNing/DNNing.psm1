@@ -148,7 +148,12 @@ function New-DNNSite {
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
     cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
     Write-Host "Updating site URL in sln files"
-    ls C:\inetpub\wwwroot\$siteName\*.sln | % { Set-Content $_ ((Get-Content $_) -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"") }
+    ls C:\inetpub\wwwroot\$siteName\*.sln | % { 
+        $slnContent = (Get-Content $_);
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DNN_Platform"', "`"http://$siteName`"";
+        Set-Content $_ $slnContent;
+    }
   }
  
   if ($siteZip -eq '') {
