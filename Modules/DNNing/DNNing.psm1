@@ -220,6 +220,9 @@ function New-DNNSite {
     Write-Host "Turning off event log buffer"
     Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database:$siteName
 
+    Write-Host "Turning off search crawler"
+    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'Schedule' $databaseOwner $objectQualifier) SET Enabled = 0 WHERE TypeFullName = 'DotNetNuke.Professional.SearchCrawler.SearchSpider.SearchSpider, DotNetNuke.Professional.SearchCrawler'" -Database:$siteName
+
     Write-Host "Turning off SSL"
     Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database:$siteName
 
