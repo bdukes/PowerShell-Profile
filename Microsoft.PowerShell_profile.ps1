@@ -6,7 +6,7 @@ Import-Module Set-ModifiedTime
 Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
 
-Import-VisualStudioVars 2012 amd64 
+Import-VisualStudioVars 2013 amd64 
 
 function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
     $inherit = [system.security.accesscontrol.InheritanceFlags]"ContainerInherit, ObjectInherit"
