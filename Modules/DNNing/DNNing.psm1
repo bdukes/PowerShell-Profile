@@ -10,6 +10,16 @@ Pop-Location
 
 $defaultDNNVersion = '7.1.2'
 
+Add-Type -TypeDefinition @"
+   public enum DnnProduct
+   {
+      DnnPlatform,
+      EvoqContent,
+      EvoqContentEnterprise,
+      ////EvoqSocial, // TODO: support Social
+   }
+"@
+
 function Remove-DNNSite {
   param(
     [parameter(Mandatory=$true,position=0)]
@@ -81,6 +91,8 @@ function Restore-DNNSite {
     [parameter(Mandatory=$false)]
     [string]$sourceVersion = '',
     [parameter(Mandatory=$false)]
+    [DnnProduct]$sourceProduct = [DnnProduct]::DnnPlatform,
+    [parameter(Mandatory=$false)]
     [string]$oldDomain = ''
   );
  
@@ -107,6 +119,8 @@ function Restore-DNNSite {
     The full path to the database backup (.bak file).  This must be in a location to which SQL Server has access
 .PARAMETER sourceVersion
     If specified, the DNN source for this version will be included with the site
+.PARAMETER sourceProduct
+    If specified, the DNN product to use for the source (assumes sourceVersion is also specified).  Defaults to DnnPlatform
 .PARAMETER oldDomain
     If specified, the Portal Alias table will be updated to replace the old site domain with the new site domain
 #>
@@ -118,10 +132,12 @@ function Upgrade-DNNSite {
     [string]$siteName,
     [parameter(Mandatory=$false,position=1)]
     [string]$version = $defaultDNNVersion,
+    [parameter(Mandatory=$false,position=2)]
+    [DnnProduct]$product = [DnnProduct]::DnnPlatform,
     [switch]$includeSource = $true
   );
  
-  Extract-Packages -SiteName:$siteName -Version:$version -IncludeSource:$includeSource -UseUpgradePackage
+  Extract-Packages -SiteName:$siteName -Version:$version -Product:$product -IncludeSource:$includeSource -UseUpgradePackage
 
   Write-Host "Launching http://$siteName/Install/Install.aspx?mode=upgrade"
   Start-Process -FilePath:http://$siteName/Install/Install.aspx?mode=upgrade
@@ -135,6 +151,8 @@ function Upgrade-DNNSite {
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
 .PARAMETER version
     The version of DNN to which the site should be upgraded.  Defaults to $defaultDNNVersion
+.PARAMETER product
+    The DNN product for the upgrade package.  Defaults to DnnPlatform
 .PARAMETER includeSource
     Whether to include the DNN source
 #>
@@ -146,6 +164,8 @@ function New-DNNSite {
     [string]$siteName,
     [parameter(Mandatory=$false,position=1)]
     [string]$version = $defaultDNNVersion,
+    [parameter(Mandatory=$false,position=2)]
+    [DnnProduct]$product = [DnnProduct]::DnnPlatform,
     [switch]$includeSource = $true,
     [string]$objectQualifier = '',
     [string]$databaseOwner = 'dbo',
@@ -159,7 +179,7 @@ function New-DNNSite {
     Break
   }
 
-  Extract-Packages -SiteName:$siteName -Version:$version -IncludeSource:$includeSource -SiteZip:$siteZip
+  Extract-Packages -SiteName:$siteName -Version:$version -Product:$product -IncludeSource:$includeSource -SiteZip:$siteZip
 
   Write-Host "Creating HOSTS file entry for $siteName"
   Add-HostFileEntry $siteName
@@ -265,7 +285,9 @@ function New-DNNSite {
 .PARAMETER siteName
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
 .PARAMETER version
-    The DNN version
+    The DNN version  Defaults to $defaultDnnVersion
+.PARAMETER product
+    The DNN product.  Defaults to DnnPlatform
 .PARAMETER includeSource
     Whether to include the DNN source files
 .PARAMETER objectQualifier
@@ -281,12 +303,16 @@ function New-DNNSite {
 #>
 }
 
+$productPackageNames = @{ [DnnProduct]::DnnPlatform = "Community"; [DnnProduct]::EvoqContent = "Professional"; [DnnProduct]::EvoqContentEnterprise = "Enterprise"; }
+
 function Extract-Packages {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName,
     [parameter(Mandatory=$true,position=1)]
     [string]$version,
+    [parameter(Mandatory=$true,position=2)]
+    [DnnProduct]$product = [DnnProduct]::DnnPlatform,
     [switch]$includeSource = $true,
     [string]$siteZip = '',
     [switch]$useUpgradePackage
@@ -301,17 +327,39 @@ function Extract-Packages {
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
   if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
+  
+  $packageName = $productPackageNames.Get_Item($product)
+  switch ($product) {
+    DnnPlatform { $packagesFolder = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion"; break; }
+    EvoqContent { $packagesFolder = "${env:soft}\DNN\Versions\DotNetNuke PE"; break; }
+    EvoqContentEnterprise { $packagesFolder = "${env:soft}\DNN\Versions\DotNetNuke EE"; break; }
+  }
+
   if ($includeSource -eq $true) {
     Write-Host "Extracting DNN $formattedVersion source"
-    $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
-    if (-not (Test-Path $sourcePath)) { Write-Error "Source package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
+    $sourcePath = "$packagesFolder\DotNetNuke_${packageName}_${formattedVersion}_Source.zip"
+    if (-not (Test-Path $sourcePath)) { 
+        Write-Warning "Source package does not exist, falling back to community source package" 
+        $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
+        if (-not (Test-Path $sourcePath)) { Write-Error "Fallback source package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion community source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
+    }
     &7za x -y -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
+    
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
-    cp "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip" C:\inetpub\wwwroot\$siteName\Website\Install\Module
+    $symbolsPath = "$packagesFolder\DotNetNuke_${packageName}_${formattedVersion}_Symbols.zip"
+    if (-not (Test-Path $symbolsPath)) { 
+        Write-Warning "Symbols package does not exist, falling back to community symbols package"
+        $symbolsPath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip"
+        if (-not (Test-Path $symbolsPath)) { Write-Error "Fallback symbols package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Copy DNN $formattedVersion community source symbols" -CategoryTargetName:$symbolsPath -TargetObject:$symbolsPath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
+    }
+    cp $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module
+
     Write-Host "Updating site URL in sln files"
     ls C:\inetpub\wwwroot\$siteName\*.sln | % { 
         $slnContent = (Get-Content $_);
         $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Professional"', "`"http://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Enterprise"', "`"http://$siteName`"";
         $slnContent = $slnContent -replace '"http://localhost/DNN_Platform"', "`"http://$siteName`""; # DNN 7.1.2+
         Set-Content $_ $slnContent;
     }
@@ -319,9 +367,9 @@ function Extract-Packages {
  
   if ($siteZip -eq '') {
     if ($useUpgradePackage) {
-        $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Upgrade.zip"
+        $siteZip = "$packagesFolder\DotNetNuke_${packageName}_${formattedVersion}_Upgrade.zip"
     } else {
-        $siteZip = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Install.zip"
+        $siteZip = "$packagesFolder\DotNetNuke_${packageName}_${formattedVersion}_Install.zip"
     }
   }
   
