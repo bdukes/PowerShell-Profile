@@ -3,6 +3,7 @@ Set-StrictMode -Version:Latest
 Push-Location
 
 Import-Module Add-HostFileEntry
+Import-Module AdministratorRole
 Import-Module WebAdministration
 Import-Module SQLPS -DisableNameChecking
 
@@ -26,10 +27,7 @@ function Remove-DNNSite {
     [string]$siteName
   );
  
-  if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "You do not have Administrator rights to run this script!`nPlease re-run this script as an Administrator!"
-    Break
-  }
+  Assert-AdministratorRole
 
   if (Test-Path IIS:\Sites\$siteName) {
     Write-Host "Removing $siteName website from IIS"
@@ -174,10 +172,7 @@ function New-DNNSite {
     [string]$oldDomain = ''
   );
 
-  if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "You do not have Administrator rights to run this script!`nPlease re-run this script as an Administrator!"
-    Break
-  }
+  Assert-AdministratorRole
 
   Extract-Packages -SiteName:$siteName -Version:$version -Product:$product -IncludeSource:$includeSource -SiteZip:$siteZip
 

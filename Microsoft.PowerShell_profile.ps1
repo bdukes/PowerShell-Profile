@@ -2,6 +2,7 @@
 
 Import-Module Pscx -RequiredVersion 3.1.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
 
+Import-Module AdministratorRole
 Import-Module Set-ModifiedTime
 Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
@@ -9,6 +10,9 @@ Set-Alias sudo Invoke-Elevated
 Import-VisualStudioVars 2013 amd64 
 
 function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
+    
+    Assert-AdministratorRole
+
     $inherit = [system.security.accesscontrol.InheritanceFlags]"ContainerInherit, ObjectInherit"
     $propagation = [system.security.accesscontrol.PropagationFlags]"None"
 
@@ -59,14 +63,16 @@ function prompt {
 
     # Reset color, which can be messed up by Enable-GitColors
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
+
     Write-Host ""
     if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
         Write-Host '╠☇╣' -NoNewline -BackgroundColor Yellow -ForegroundColor Black
     }
+
     Write-Host "$($pwd.ProviderPath)" -NoNewline -BackgroundColor Blue -ForegroundColor White    
 
     Write-VcsStatus
-
+    
     $global:LASTEXITCODE = $realLASTEXITCODE
     return "`n> "
 }
