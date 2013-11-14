@@ -322,31 +322,40 @@ function Extract-Packages {
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
   if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
+  Write-Verbose "Formatted Version is $formattedVersion"
   
   $packageName = $productPackageNames.Get_Item($product)
+  Write-Verbose "Package Name is $packageName"
   switch ($product) {
     DnnPlatform { $packagesFolder = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion"; break; }
     EvoqContent { $packagesFolder = "${env:soft}\DNN\Versions\DotNetNuke PE"; break; }
     EvoqContentEnterprise { $packagesFolder = "${env:soft}\DNN\Versions\DotNetNuke EE"; break; }
   }
+  Write-Verbose "Packages Folder is $packagesFolder"
 
   if ($includeSource -eq $true) {
     Write-Host "Extracting DNN $formattedVersion source"
     $sourcePath = "$packagesFolder\DotNetNuke_${packageName}_${formattedVersion}_Source.zip"
+    Write-Verbose "Source Path is $sourcePath"
     if (-not (Test-Path $sourcePath)) { 
         Write-Warning "Source package does not exist, falling back to community source package" 
         $sourcePath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Source.zip"
+        Write-Verbose "Fallback Source Path is $sourcePath"
         if (-not (Test-Path $sourcePath)) { Write-Error "Fallback source package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion community source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     }
+    Write-Verbose "&7za x -y -oC:\inetpub\wwwroot\$siteName `"$sourcePath`" | Out-Null"
     &7za x -y -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
     
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
     $symbolsPath = "$packagesFolder\DotNetNuke_${packageName}_${formattedVersion}_Symbols.zip"
+    Write-Verbose "Symbols Path is $sourcePath"
     if (-not (Test-Path $symbolsPath)) { 
         Write-Warning "Symbols package does not exist, falling back to community symbols package"
         $symbolsPath = "${env:soft}\DNN\Versions\DotNetNuke $majorVersion\DotNetNuke_Community_${formattedVersion}_Symbols.zip"
+        Write-Verbose "Fallback Symbols Path is $sourcePath"
         if (-not (Test-Path $symbolsPath)) { Write-Error "Fallback symbols package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Copy DNN $formattedVersion community source symbols" -CategoryTargetName:$symbolsPath -TargetObject:$symbolsPath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     }
+    Write-Verbose "cp $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module"
     cp $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module
 
     Write-Host "Updating site URL in sln files"
