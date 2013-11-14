@@ -32,8 +32,14 @@ function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
     set-acl -aclobject $acl $directory
 }
 
-function GitTfs-Clone ($tfsPath, $gitPath) {
-    git tfs clone http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010 "$tfsPath" "$gitPath"
+function GitTfs-Clone ($tfsPath, $gitPath, $tfsServer = 'http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010', [switch]$export) {
+    if ($export) {
+        $authorsFile = Join-Path $pwd authors.txt
+        git tfs clone $tfsServer "$tfsPath" "$gitPath" --ignorecase=true --fetch-labels  --export --authors="$authorsFile"
+    } else {
+        git tfs clone $tfsServer "$tfsPath" "$gitPath" --ignorecase=true --fetch-labels
+    }
+    
     if ($gitPath) {
       cd $gitPath
     } else {
@@ -42,6 +48,8 @@ function GitTfs-Clone ($tfsPath, $gitPath) {
     }
     
     git config core.ignorecase true
+    git gc
+    git tfs cleanup
 }
 
 function Fix-GitTfsBindings () {
