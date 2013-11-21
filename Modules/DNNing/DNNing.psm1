@@ -249,12 +249,12 @@ function New-DNNSite {
   }
 
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
-  $webConfig.configuration.connectionStrings.add.connectionString = $connectionString
+  $webConfig.configuration.connectionStrings.add | ? { $_.name -eq 'SiteSqlServer' } | % { $_.connectionString = $connectionString }
   $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | % { $_.value = $connectionString }
-  $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier = $objectQualifier
-  $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner = $databaseOwner
+  
+  $webConfig.configuration.dotnetnuke.data.providers.add | ? { $_.name -eq 'SqlDataProvider' } | % { $_.objectQualifier = $objectQualifier; $_.databaseOwner = $databaseOwner }
   Write-Host "Updating web.config with connection string and data provider attributes"
-  $webConfig.configuration['system.web'].membership.providers.add.minRequiredPasswordLength = '4'
+  $webConfig.configuration['system.web'].membership.providers.add | ? { $_.type -eq 'System.Web.Security.SqlMembershipProvider' } | % { $_.minRequiredPasswordLength = '4' }
   Write-Host "Updating web.config to allow short passwords"
   $webConfig.configuration['system.web'].compilation.debug = 'true'
   Write-Host "Updating web.config to turn on debug mode"
