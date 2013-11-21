@@ -8,6 +8,7 @@ Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
 
 Import-VisualStudioVars 2013 amd64 
+$env:Platform = "Any CPU"
 
 function Set-ModifyPermission {
     param(
