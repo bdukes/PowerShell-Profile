@@ -9,8 +9,12 @@ Set-Alias sudo Invoke-Elevated
 
 Import-VisualStudioVars 2013 amd64 
 
-function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
-    
+function Set-ModifyPermission {
+    param(
+        [parameter(Mandatory=$true,position=0)]$directory, 
+        [parameter(Mandatory=$true,position=1)]$username, 
+        $domain = 'IIS APPPOOL');
+
     Assert-AdministratorRole
 
     $inherit = [system.security.accesscontrol.InheritanceFlags]"ContainerInherit, ObjectInherit"
@@ -32,7 +36,13 @@ function Set-ModifyPermission ($directory, $username, $domain = 'IIS APPPOOL') {
     set-acl -aclobject $acl $directory
 }
 
-function GitTfs-Clone ($tfsPath, $gitPath, $tfsServer = 'http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010', [switch]$export) {
+function GitTfs-Clone {
+    param(
+        [parameter(Mandatory=$true,position=0)]$tfsPath, 
+        [parameter(Mandatory=$false,position=1)]$gitPath, 
+        $tfsServer = 'http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010', 
+        [switch]$export);
+
     if ($export) {
         $authorsFile = Join-Path $pwd authors.txt
         git tfs clone $tfsServer "$tfsPath" "$gitPath" --ignorecase=true --fetch-labels  --export --authors="$authorsFile"
@@ -57,9 +67,16 @@ function Fix-GitTfsBindings () {
     git config tfs-remote.default.url http://tfs.etg-inc.net:8080/tfs/Engage%20TFS%202010
 }
 
-function Open-BrowserstackTunnel ($hostName, $port = 80, $ssl = $false) {
+function Open-BrowserstackTunnel {
+    param(
+        [parameter(Mandatory=$true,position=0)]$hostName, 
+        $port = 80, 
+        $ssl = $false);
+
     $sslBit = 0
     if ($ssl) { $sslBit = 1 }
+
+    Write-Verbose "java -jar c:\tools\BrowserStackTunnel.jar $env:browserStackTunnelKey `"$hostName,$port,$sslBit`""
     java -jar c:\tools\BrowserStackTunnel.jar $env:browserStackTunnelKey "$hostName,$port,$sslBit"
 }
 
