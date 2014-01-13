@@ -95,7 +95,7 @@ function Restore-DNNSite {
   );
  
   $siteZipFile = Get-ChildItem $siteZip
-  if ($siteZipFile.Extension -eq '.bak') {
+  if ($siteZipFile.Extension -eq '.bak' -or $siteZipFile.Extension -eq '.bacpac') {
     $siteZip = $databaseBackup
     $databaseBackup = $siteZipFile.FullName
   }
@@ -438,50 +438,46 @@ function Restore-DNNDatabase {
     [string]$databaseBackup
   );
 
+  # TODO https://github.com/sandrinodimattia/articles/tree/master/SQLAzure.PowerShellBackupRestore
   if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer') {
     $backupDir = $(Get-ItemProperty -path:'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer' -name:BackupDirectory).BackupDirectory
     if ($backupDir) {
         $sqlAcl = Get-Acl $backupDir
+        Write-Verbose 'Giving SQL Server permission to access backup file'
         Set-Acl $databaseBackup $sqlAcl
+    } else {
+        Write-Verbose 'Backup directory for SQL Server 2012 did not exist, unable to give SQL Server permission to access backup file'
     }
+  } else {
+    Write-Verbose 'Could not SQL Server 2012 installation, unable to give SQL Server permission to access backup file'
   }
- 
-  #based on http://redmondmag.com/articles/2009/12/21/automated-restores.aspx
+   
   $server = New-Object Microsoft.SqlServer.Management.Smo.Server('(local)')
-  $dbRestore = New-Object Microsoft.SqlServer.Management.Smo.Restore
- 
-  $dbRestore.Action = 'Database'
-  $dbRestore.NoRecovery = $false
-  $dbRestore.ReplaceDatabase = $true
-  $dbRestore.Devices.AddDevice($databaseBackup, [Microsoft.SqlServer.Management.Smo.DeviceType]::File)
-  $dbRestore.Database = $siteName
-  
   $dbRestoreFile = New-Object Microsoft.SqlServer.Management.Smo.RelocateFile
   $dbRestoreLog = New-Object Microsoft.SqlServer.Management.Smo.RelocateFile
+  $dbRestoreFile.PhysicalFileName = $server.Information.MasterDBPath + "\${siteName}_Data.mdf"
+  Write-Verbose 'Restoring data file to ' + $dbRestoreFile.PhysicalFileName
+  $dbRestoreLog.PhysicalFileName = $server.Information.MasterDBLogPath + "\${siteName}_Log.ldf"
+  Write-Verbose 'Restoring log file to ' + $dbRestoreLog.PhysicalFileName
+  $dbRestoreFile.LogicalFileName = $siteName
+  $dbRestoreLog.LogicalFileName = $siteName
  
-  $logicalDataFileName = $siteName
-  $logicalLogFileName = $siteName
- 
+  $dbRestore = New-Object Microsoft.SqlServer.Management.Smo.Restore
   foreach ($file in $dbRestore.ReadFileList($server)) {
     switch ($file.Type) {
-      'D' { $logicalDataFileName = $file.LogicalName }
-      'L' { $logicalLogFileName = $file.LogicalName }
+      'D' { $dbRestoreFile.LogicalFileName = $file.LogicalName }
+      'L' { $dbRestoreLog.LogicalFileName = $file.LogicalName }
     }
   }
 
-  $dbRestoreFile.LogicalFileName = $logicalDataFileName
-  $dbRestoreFile.PhysicalFileName = $server.Information.MasterDBPath + '\' + $siteName + '_Data.mdf'
-  $dbRestoreLog.LogicalFileName = $logicalLogFileName
-  $dbRestoreLog.PhysicalFileName = $server.Information.MasterDBLogPath + '\' + $siteName + '_Log.ldf'
- 
-  $dbRestore.RelocateFiles.Add($dbRestoreFile) | Out-Null
-  $dbRestore.RelocateFiles.Add($dbRestoreLog) | Out-Null
+  Write-Verbose 'Data file''s logical name is ' + $dbRestoreFile.LogicalFileName
+  Write-Verbose 'Log file''s logical name is ' + $dbRestoreLog.LogicalFileName
  
   try {
-    $dbRestore.SqlRestore($server)
+    Restore-SqlDatabase -Database $siteName -BackupFile $databaseBackup -ReplaceDatabase -RestoreAction Database -RelocateFile @($dbRestoreFile, $dbRestoreLog)
   }
-  catch [System.Exception] {
-    write-host $_.Exception
+  catch {
+    Write-Fatal $_.Exception
   }
 }
 
