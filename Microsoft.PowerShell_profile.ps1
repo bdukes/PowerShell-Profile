@@ -4,7 +4,6 @@ Import-Module Pscx -RequiredVersion 3.1.0.0 -arg "$(Split-Path $profile -parent)
 
 Import-Module AdministratorRole
 Import-Module Set-ModifiedTime
-Import-Module Get-IPAddress
 Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
 
