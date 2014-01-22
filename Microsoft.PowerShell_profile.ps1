@@ -78,16 +78,17 @@ function prompt {
     $Host.UI.RawUI.ForegroundColor = $GitPromptSettings.DefaultForegroundColor
 
     Write-Host ""
-    #if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    #    Write-Host '╠☇╣' -NoNewline -BackgroundColor Yellow -ForegroundColor Black
-    #}
+    if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+        Write-Host '╠☇╣' -NoNewline -BackgroundColor Yellow -ForegroundColor Black
+    }
 
-    Write-Host "$($pwd.ProviderPath)" -NoNewline -BackgroundColor Blue -ForegroundColor White    
+    Write-Host $pwd.ProviderPath -NoNewline -BackgroundColor Blue -ForegroundColor White    
 
     Write-VcsStatus
     
     $global:LASTEXITCODE = $realLASTEXITCODE
-    return "`n> "
+    Write-Host "`nλ" -NoNewline -ForegroundColor DarkGreen
+    return ' '
 }
 
 Enable-GitColors
