@@ -325,14 +325,17 @@ function Extract-Zip {
   );
 
   Write-Verbose "extracting from $zipFile to $output"
-  $outputFile = [System.IO.Path]::GetTempFileName()
-  $process =  Start-Process 7za -ArgumentList "x -y -o$output $zipFile" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
-  if ($process.ExitCode -ne 0) {
-    Write-Warning "Error extracting $zipFile"
-    Write-Host (Get-Content $outputFile)
+  try {
+    $outputFile = [System.IO.Path]::GetTempFileName()
+    $process =  Start-Process 7za -ArgumentList "x -y -o`"$output`" `"$zipFile`"" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
+    if ($process.ExitCode -ne 0) {
+      Write-Warning "Error extracting $zipFile"
+      throw (Get-Content $outputFile)
+    }
   }
-  
-  rm $outputFile
+  finally {
+    rm $outputFile
+  }
 }
 
 function Extract-Packages {
