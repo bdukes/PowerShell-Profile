@@ -316,6 +316,25 @@ function getPackageName([System.Version]$version, [DnnProduct]$product) {
     return $productPackageNames.Get_Item($product)
 }
 
+function Extract-Zip {
+  param(
+    [parameter(Mandatory=$true,position=0)]
+    [string]$output,
+    [parameter(Mandatory=$true,position=1)]
+    [string]$zipFile
+  );
+
+  Write-Verbose "extracting from $zipFile to $output"
+  $outputFile = [System.IO.Path]::GetTempFileName()
+  $process =  Start-Process 7za -ArgumentList "x -y -o$output $zipFile" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
+  if ($process.ExitCode -ne 0) {
+    Write-Warning "Error extracting $zipFile"
+    Write-Host (Get-Content $outputFile)
+  }
+  
+  rm $outputFile
+}
+
 function Extract-Packages {
   param(
     [parameter(Mandatory=$true,position=0)]
@@ -360,8 +379,8 @@ function Extract-Packages {
         Write-Verbose "Fallback Source Path is $sourcePath"
         if (-not (Test-Path $sourcePath)) { Write-Error "Fallback source package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion community source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     }
-    Write-Verbose "&7za x -y -oC:\inetpub\wwwroot\$siteName `"$sourcePath`" | Out-Null"
-    &7za x -y -oC:\inetpub\wwwroot\$siteName "$sourcePath" | Out-Null
+    Write-Verbose "extracting from $sourcePath to C:\inetpub\wwwroot\$siteName"
+    Extract-Zip "C:\inetpub\wwwroot\$siteName" "$sourcePath"
     
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
     $symbolsPath = "$packagesFolder\${packageName}_${formattedVersion}_Symbols.zip"
@@ -403,7 +422,7 @@ function Extract-Packages {
   }
 
   $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
-  &7za x -y "-o$siteZipOutput" $siteZip | Out-Null
+  Extract-Zip "$siteZipOutput" "$siteZip"
  
   $from = $siteZipOutput
   $unzippedFiles = @(ls $siteZipOutput)
