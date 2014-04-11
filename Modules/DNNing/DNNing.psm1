@@ -23,9 +23,17 @@ Add-Type -TypeDefinition @"
 
 function Install-DNNResources {
     param(
-        [parameter(Mandatory=$true,position=0)]
+        [parameter(Mandatory=$false,position=0)]
         [string]$siteName
     );
+
+    if ($siteName -eq '' -and $PWD.Provider.Name -eq 'FileSystem' -and $PWD.Path.StartsWith('C:\inetpub\wwwroot\')) {
+        $siteName = $PWD.Path.Split('\')[3]
+    }
+
+    if ($siteName -eq '') {
+        throw 'You must specify the site name (e.g. dnn.dev) if you are not in the website'
+    }
 
     $result = Invoke-WebRequest "http://$siteName/Install/Install.aspx?mode=InstallResources"
 
@@ -42,7 +50,7 @@ function Install-DNNResources {
 .DESCRIPTION
     Starts the Install Resources mode of the installer, installing all extension packages in the Install folder of the website
 .PARAMETER siteName
-    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+    The name of the site (the domain, folder name, and database name, e.g. dnn.dev).  If not specified, this is derived from the current folder path
 #>
 }
 
