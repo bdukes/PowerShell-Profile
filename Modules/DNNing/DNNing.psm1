@@ -21,6 +21,31 @@ Add-Type -TypeDefinition @"
    }
 "@
 
+function Install-DNNResources {
+    param(
+        [parameter(Mandatory=$true,position=0)]
+        [string]$siteName
+    );
+
+    $result = Invoke-WebRequest "http://$siteName/Install/Install.aspx?mode=InstallResources"
+
+    if ($result.StatusCode -ne 200) {
+        Write-Warning 'There was an error trying to install the resources'
+        return
+    }
+
+    Write-Host $result.Content
+
+<#
+.SYNOPSIS
+    Kicks off any pending extension package installations
+.DESCRIPTION
+    Starts the Install Resources mode of the installer, installing all extension packages in the Install folder of the website
+.PARAMETER siteName
+    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+#>
+}
+
 function Remove-DNNSite {
   param(
     [parameter(Mandatory=$true,position=0)]
@@ -557,6 +582,7 @@ function Watermark-Logos {
   }
 }
 
+Export-ModuleMember Install-DNNResources
 Export-ModuleMember Remove-DNNSite
 Export-ModuleMember New-DNNSite
 Export-ModuleMember Upgrade-DNNSite
