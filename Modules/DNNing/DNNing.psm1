@@ -9,7 +9,7 @@ Import-Module SQLPS -DisableNameChecking
 
 Pop-Location
 
-$defaultDNNVersion = '7.2.1'
+$defaultDNNVersion = '7.2.2'
 
 Add-Type -TypeDefinition @"
    public enum DnnProduct
