@@ -229,7 +229,7 @@ function New-DNNSite {
   }
   else {
     Write-Host "Restoring database"
-    Restore-DNNDatabase $siteName (gci $databaseBackup).FullName
+    Restore-DNNDatabase $siteName (Get-ChildItem $databaseBackup).FullName
 
     $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
@@ -282,12 +282,12 @@ function New-DNNSite {
   }
 
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
-  $webConfig.configuration.connectionStrings.add | ? { $_.name -eq 'SiteSqlServer' } | % { $_.connectionString = $connectionString }
-  $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | % { $_.value = $connectionString }
+  $webConfig.configuration.connectionStrings.add | ? { $_.name -eq 'SiteSqlServer' } | ForEach-Object { $_.connectionString = $connectionString }
+  $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | ForEach-Object { $_.value = $connectionString }
   
-  $webConfig.configuration.dotnetnuke.data.providers.add | ? { $_.name -eq 'SqlDataProvider' } | % { $_.objectQualifier = $objectQualifier; $_.databaseOwner = $databaseOwner }
+  $webConfig.configuration.dotnetnuke.data.providers.add | ? { $_.name -eq 'SqlDataProvider' } | ForEach-Object { $_.objectQualifier = $objectQualifier; $_.databaseOwner = $databaseOwner }
   Write-Host "Updating web.config with connection string and data provider attributes"
-  $webConfig.configuration['system.web'].membership.providers.add | ? { $_.type -eq 'System.Web.Security.SqlMembershipProvider' } | % { $_.minRequiredPasswordLength = '4' }
+  $webConfig.configuration['system.web'].membership.providers.add | ? { $_.type -eq 'System.Web.Security.SqlMembershipProvider' } | ForEach-Object { $_.minRequiredPasswordLength = '4' }
   Write-Host "Updating web.config to allow short passwords"
   $webConfig.configuration['system.web'].compilation.debug = 'true'
   Write-Host "Updating web.config to turn on debug mode"
@@ -367,7 +367,7 @@ function Extract-Zip {
     }
   }
   finally {
-    rm $outputFile
+    Remove-Item $outputFile
   }
 }
 
@@ -429,10 +429,10 @@ function Extract-Packages {
         if (-not (Test-Path $symbolsPath)) { Write-Error "Fallback symbols package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Copy DNN $formattedVersion community source symbols" -CategoryTargetName:$symbolsPath -TargetObject:$symbolsPath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     }
     Write-Verbose "cp $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module"
-    cp $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module
+    Copy-Item $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module
 
     Write-Host "Updating site URL in sln files"
-    ls C:\inetpub\wwwroot\$siteName\*.sln | % { 
+    Get-ChildItem C:\inetpub\wwwroot\$siteName\*.sln | ForEach-Object { 
         $slnContent = (Get-Content $_);
         $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"";
         $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Professional"', "`"http://$siteName`"";
@@ -450,7 +450,7 @@ function Extract-Packages {
     }
   }
   
-  $siteZip = (gci $siteZip).FullName
+  $siteZip = (Get-ChildItem $siteZip).FullName
   Write-Host "Extracting DNN site"
   if (-not (Test-Path $siteZip)) {
     Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist"
@@ -461,7 +461,7 @@ function Extract-Packages {
   Extract-Zip "$siteZipOutput" "$siteZip"
  
   $from = $siteZipOutput
-  $unzippedFiles = @(ls $siteZipOutput)
+  $unzippedFiles = @(Get-ChildItem $siteZipOutput)
   if ($unzippedFiles.Length -eq 1) {
     $from += "\$unzippedFiles"
   }
@@ -470,9 +470,9 @@ function Extract-Packages {
   $to = "C:\inetpub\wwwroot\$siteName\Website"
   $from += '/'
   if (Test-Path $to -PathType Container) { $from += '*' }
-  cp $from $to -Force -Recurse
+  Copy-Item $from $to -Force -Recurse
  
-  rm $siteZipOutput -Force -Recurse
+  Remove-Item $siteZipOutput -Force -Recurse
 }
 
 function New-DNNDatabase {
