@@ -42,7 +42,7 @@ function Install-DNNResources {
         return
     }
 
-    Write-Host $result.Content
+    Write-HtmlNode $result.ParsedHtml.documentElement
 
 <#
 .SYNOPSIS
