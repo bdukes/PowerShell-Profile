@@ -362,8 +362,13 @@ function Extract-Zip {
     $outputFile = [System.IO.Path]::GetTempFileName()
     $process =  Start-Process 7za -ArgumentList "x -y -o`"$output`" `"$zipFile`"" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
     if ($process.ExitCode -ne 0) {
-      Write-Warning "Error extracting $zipFile"
-      throw (Get-Content $outputFile)
+      if ($process.ExitCode -eq 1) {
+        Write-Warning "Non-fatal error extracting $zipFile, opening 7-Zip output"
+      } else {
+        Write-Warning "Error extracting $zipFile, opening 7-Zip output"
+      }
+      notepad $outputFile
+      Start-Sleep -s 1 #sleep for one second to make sure notepad has enough time to open the file before it's deleted
     }
   }
   finally {
