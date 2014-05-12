@@ -498,12 +498,22 @@ function Restore-DNNDatabase {
     [string]$databaseBackup
   );
 
-  if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer') {
-    $backupDir = $(Get-ItemProperty -path:'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer' -name:BackupDirectory).BackupDirectory
-    if ($backupDir) {
+  if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server') {
+    $defaultInstanceKey = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server' | Where-Object { $_.Name -match 'MSSQL\d+\.MSSQLSERVER' } | Select-Object
+    if ($defaultInstanceKey) {
+      $defaultInstanceInfoPath = Join-Path $defaultInstanceKey.PSPath 'MSSQLServer'
+      $backupDir = $(Get-ItemProperty -path:$defaultInstanceInfoPath -name:BackupDirectory).BackupDirectory
+      if ($backupDir) {
         $sqlAcl = Get-Acl $backupDir
         Set-Acl $databaseBackup $sqlAcl
+      } else {
+        Write-Warning 'Unable to find SQL Server backup directory, backup file will not have ACL permissions set'
+      }
+    } else {
+      Write-Warning 'Unable to find SQL Server info in registry, backup file will not have ACL permissions set'
     }
+  } else {
+    Write-Warning 'Unable to find SQL Server info in registry, backup file will not have ACL permissions set'
   }
  
   #based on http://redmondmag.com/articles/2009/12/21/automated-restores.aspx
