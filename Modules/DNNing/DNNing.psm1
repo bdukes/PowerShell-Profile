@@ -207,6 +207,8 @@ function New-DNNSite {
 
   Assert-AdministratorRole
 
+  $siteNameExtension = [System.IO.Path]::GetExtension($siteName)
+  if ($siteNameExtension -eq '') { $siteNameExtension = '.local' }
   Extract-Packages -SiteName:$siteName -Version:$version -Product:$product -IncludeSource:$includeSource -SiteZip:$siteZip
 
   Write-Host "Creating HOSTS file entry for $siteName"
@@ -235,11 +237,42 @@ function New-DNNSite {
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
 
     if ($oldDomain -ne '') {
-      Write-Host "Updating portal aliases"
-      Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database:$siteName
-      Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database:$siteName
-      # TODO: Update remaining .com aliases to .com.dev
-      # TODO: Add all aliases to host file and IIS
+        Write-Host "Updating portal aliases"
+        Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldDomain', '$siteName')" -Database:$siteName
+        Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = REPLACE(SettingValue, '$oldDomain', '$siteName') WHERE SettingName = 'DefaultPortalAlias'" -Database:$siteName
+
+        $aliases = Invoke-Sqlcmd -Query:"SELECT HTTPAlias FROM $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) WHERE HTTPAlias != '$siteName'" -Database:$siteName
+        foreach ($aliasRow in $aliases) {
+            $alias = $aliasRow.HTTPAlias
+            Write-Verbose "Updating $alias"
+            if ($alias -Like '*/*') {
+                $split = $alias.Split('/')
+                $aliasHost = $split[0]
+                $childAlias = $split[1..($split.length - 1)] -join '/'
+            } else {
+                $aliasHost = $alias
+                $childAlias = $null
+            }
+
+            if ($aliasHost -NotLike "*$siteName*") {
+                $aliasHost = $aliasHost + $siteNameExtension
+                $newAlias = $aliasHost
+                if ($childAlias) {
+                    $newAlias = $newAlias + '/' + $childAlias
+                }
+                Write-Verbose "Changing $alias to $newAlias"
+                Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = '$newAlias' WHERE HTTPAlias = '$alias'" -Database:$siteName
+            }
+
+            $existingBinding = Get-WebBinding -Name:$siteName -HostHeader:$aliasHost
+            if ($existingBinding -eq $null) {
+                Write-Verbose "Setting up IIS binding and HOSTS entry for $aliasHost"
+                New-WebBinding -Name:$siteName -IP:'*' -Port:80 -Protocol:'http' -HostHeader:$aliasHost
+                Add-HostFileEntry $aliasHost
+            } else {
+                Write-Verbose "IIS binding already exists for $aliasHost"
+            }
+        }
     }
 
     if ($objectQualifier -ne '') {
