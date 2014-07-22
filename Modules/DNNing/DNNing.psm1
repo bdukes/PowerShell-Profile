@@ -145,7 +145,7 @@ function Restore-DNNSite {
 .PARAMETER siteName
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
 .PARAMETER siteZip
-    The full path to the zip (any format that 7-Zip can expand) of the site's file system
+    The full path to the zip (any format that 7-Zip can expand) of the site's file system, or the full path to a folder with the site's contents
 .PARAMETER databaseBackup
     The full path to the database backup (.bak file).  This must be in a location to which SQL Server has access
 .PARAMETER sourceVersion
@@ -495,13 +495,18 @@ function Extract-Packages {
     Break
   }
 
-  $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
-  Extract-Zip "$siteZipOutput" "$siteZip"
+  if ((Get-Item $siteZip).PSIsContainer) {
+    $from = $siteZip
+    $siteZipOutput = $null
+  } else {
+    $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
+    Extract-Zip "$siteZipOutput" "$siteZip"
  
-  $from = $siteZipOutput
-  $unzippedFiles = @(Get-ChildItem $siteZipOutput)
-  if ($unzippedFiles.Length -eq 1) {
-    $from += "\$unzippedFiles"
+    $from = $siteZipOutput
+    $unzippedFiles = @(Get-ChildItem $siteZipOutput)
+    if ($unzippedFiles.Length -eq 1) {
+      $from += "\$unzippedFiles"
+    }
   }
  
   # add * only if the directory already exists, based on https://groups.google.com/d/msg/microsoft.public.windows.powershell/iTEakZQQvh0/TLvql_87yzgJ
@@ -510,7 +515,9 @@ function Extract-Packages {
   if (Test-Path $to -PathType Container) { $from += '*' }
   Copy-Item $from $to -Force -Recurse
  
-  Remove-Item $siteZipOutput -Force -Recurse
+  if ($siteZipOutput) {
+    Remove-Item $siteZipOutput -Force -Recurse
+  }
 }
 
 function New-DNNDatabase {
