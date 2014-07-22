@@ -311,7 +311,7 @@ function New-DNNSite {
     Invoke-Sqlcmd -Query:"UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database:$siteName
 
     Write-Host "Watermarking site logo(s)"
-    Watermark-Logos $siteName
+    Watermark-Logos $siteName $siteNameExtension
   }
 
   $connectionString = "Data Source=.`;Initial Catalog=$siteName`;Integrated Security=true"
@@ -624,13 +624,14 @@ function Update-WizardUrls {
 function Watermark-Logos {
   param(
     [parameter(Mandatory=$true,position=0)]
-    [string]$siteName
+    [string]$siteName,
+    [parameter(Mandatory=$true,position=1)]
+    [string]$siteNameExtension
   );
 
   if (Get-Command "mogrify" -ErrorAction:SilentlyContinue) {
     $logos = Invoke-Sqlcmd -Query:"SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DNNDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database:$siteName
-    $siteNameParts = $siteName.Split('.')
-    $watermarkText = if ($siteNameParts.Length -gt 1) { $siteNameParts[$siteNameParts.Length - 1] } else { 'dev' }
+    $watermarkText = $siteNameExtension.Substring(1)
     foreach ($logo in $logos) {
         $logoFile = "C:\inetpub\wwwroot\$siteName\Website\" + $logo.Logo.Replace('/', '\')
         mogrify -font Arial -pointsize 60 -draw "gravity Center fill #00ff00 text 0,0 $watermarkText" -draw "gravity NorthEast fill #ff00ff text 0,0 $watermarkText" -draw "gravity SouthWest fill #00ffff text 0,0 $watermarkText" -draw "gravity NorthWest fill #ff0000 text 0,0 $watermarkText" -draw "gravity SouthEast fill #0000ff text 0,0 $watermarkText" $logoFile
