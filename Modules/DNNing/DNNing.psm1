@@ -127,7 +127,7 @@ function Restore-DNNSite {
     [string]$oldDomain = ''
   );
  
-  $siteZipFile = Get-ChildItem $siteZip
+  $siteZipFile = Get-Item $siteZip
   if ($siteZipFile.Extension -eq '.bak') {
     $siteZip = $databaseBackup
     $databaseBackup = $siteZipFile.FullName
@@ -231,7 +231,7 @@ function New-DNNSite {
   }
   else {
     Write-Host "Restoring database"
-    Restore-DNNDatabase $siteName (Get-ChildItem $databaseBackup).FullName
+    Restore-DNNDatabase $siteName (Get-Item $databaseBackup).FullName
 
     $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
@@ -488,7 +488,7 @@ function Extract-Packages {
     }
   }
   
-  $siteZip = (Get-ChildItem $siteZip).FullName
+  $siteZip = (Get-Item $siteZip).FullName
   Write-Host "Extracting DNN site"
   if (-not (Test-Path $siteZip)) {
     Write-Error "Site package does not exist" -Category:ObjectNotFound -CategoryActivity:"Extract DNN site" -CategoryTargetName:$siteZip -TargetObject:$siteZip -CategoryTargetType:".zip file" -CategoryReason:"File does not exist"
