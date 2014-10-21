@@ -224,6 +224,7 @@ function New-DNNSite {
   else {
     Write-Host "Restoring database"
     Restore-DNNDatabase $siteName (Get-Item $databaseBackup).FullName
+    Invoke-Sqlcmd -Query:"ALTER DATABASE $(Encode-SqlName $siteName) SET RECOVERY SIMPLE"
 
     $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
     $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
