@@ -311,12 +311,12 @@ function New-DNNSite {
   $webConfig.configuration.connectionStrings.add | ? { $_.name -eq 'SiteSqlServer' } | ForEach-Object { $_.connectionString = $connectionString }
   $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | ForEach-Object { $_.value = $connectionString }
   
-  $webConfig.configuration.dotnetnuke.data.providers.add | ? { $_.name -eq 'SqlDataProvider' } | ForEach-Object { $_.objectQualifier = $objectQualifier; $_.databaseOwner = $databaseOwner }
   Write-Host "Updating web.config with connection string and data provider attributes"
-  $webConfig.configuration['system.web'].membership.providers.add | ? { $_.type -eq 'System.Web.Security.SqlMembershipProvider' } | ForEach-Object { $_.minRequiredPasswordLength = '4' }
+  $webConfig.configuration.dotnetnuke.data.providers.add | ? { $_.name -eq 'SqlDataProvider' } | ForEach-Object { $_.objectQualifier = $objectQualifier; $_.databaseOwner = $databaseOwner }
   Write-Host "Updating web.config to allow short passwords"
-  $webConfig.configuration['system.web'].compilation.debug = 'true'
+  $webConfig.configuration['system.web'].membership.providers.add | ? { $_.type -eq 'System.Web.Security.SqlMembershipProvider' } | ForEach-Object { $_.minRequiredPasswordLength = '4' }
   Write-Host "Updating web.config to turn on debug mode"
+  $webConfig.configuration['system.web'].compilation.debug = 'true'
   $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
  
   if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) {
