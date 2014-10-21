@@ -1,7 +1,7 @@
 #Requires -Modules SQLPS, WebAdministration, Add-HostFileEntry, AdministratorRole
 Set-StrictMode -Version:Latest
 
-$defaultDNNVersion = '7.3.1'
+$defaultDNNVersion = '7.3.3'
 
 Add-Type -TypeDefinition @"
    public enum DnnProduct
