@@ -1,4 +1,4 @@
-﻿#Requires -Modules AdministratorRole, Set-ModifiedTime
+﻿#Requires -Modules PSReadLine, AdministratorRole, Set-ModifiedTime
 Set-StrictMode -Version Latest
 
 Import-Module Pscx -RequiredVersion 3.2.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
