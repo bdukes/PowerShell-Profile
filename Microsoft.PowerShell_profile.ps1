@@ -1,7 +1,7 @@
 ﻿#Requires -Modules AdministratorRole, Set-ModifiedTime
 Set-StrictMode -Version Latest
 
-Import-Module Pscx -RequiredVersion 3.1.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
+Import-Module Pscx -RequiredVersion 3.2.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
 Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
 
