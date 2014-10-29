@@ -1,5 +1,9 @@
-#Requires -Modules SQLPS, WebAdministration, Add-HostFileEntry, AdministratorRole
+#Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole
 Set-StrictMode -Version:Latest
+
+Push-Location
+Import-Module SQLPS -DisableNameChecking
+Pop-Location
 
 $defaultDNNVersion = '7.3.3'
 
