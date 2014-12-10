@@ -536,7 +536,7 @@ function Restore-DNNDatabase {
   );
 
   if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server') {
-    $defaultInstanceKey = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server' | Where-Object { $_.Name -match 'MSSQL\d+\.MSSQLSERVER' } | Select-Object
+    $defaultInstanceKey = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server' | Where-Object { $_.Name -match 'MSSQL\d+\.MSSQLSERVER$' } | Select-Object
     if ($defaultInstanceKey) {
       $defaultInstanceInfoPath = Join-Path $defaultInstanceKey.PSPath 'MSSQLServer'
       $backupDir = $(Get-ItemProperty -path:$defaultInstanceInfoPath -name:BackupDirectory).BackupDirectory
