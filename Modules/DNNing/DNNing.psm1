@@ -1,3 +1,4 @@
+#Requires -Version 3
 #Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole
 Set-StrictMode -Version:Latest
 
