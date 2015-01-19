@@ -8,15 +8,21 @@ function Add-HostFileEntry {
   );
 
 	$hostsLocation = "$env:windir\System32\drivers\etc\hosts";
-    $hostsContent = Get-Content $hostsLocation;
+    $hostsContent = Get-Content $hostsLocation -Raw;
     
     $ipRegex = [regex]::Escape($ipAddress);
     $hostRegex = [regex]::Escape($hostName);
     
-    $existingEntry = $hostsContent -Match "^\s*$ipRegex\s+$hostRegex\s*$"
+    $existingEntry = $hostsContent -match "(?:`n|\A)\s*$ipRegex\s+$hostRegex\s*(?:`n|\Z)"
 	if(-not $existingEntry)
 	{
-		Add-Content -Path $hostsLocation -Value "$ipAddress         $hostName";
+        if ($hostsContent -notmatch "`n\s*$") 
+        {
+            # Add line break if missing from last line
+            Add-Content -Path $hostsLocation -Value '';
+        }
+
+		Add-Content -Path $hostsLocation -Value "$ipAddress`t$hostName";
 	}
 }
 
