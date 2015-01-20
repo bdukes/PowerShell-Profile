@@ -96,7 +96,8 @@ function Remove-DNNSite {
     Write-Host "IIS AppPool\$siteName database login not found"
   }
 
-  # TODO: Remove host file entry
+  #TODO: remove all host entries added during restore
+  Remove-HostFileEntry $siteName
 
 <#
 .SYNOPSIS
