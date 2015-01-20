@@ -121,7 +121,9 @@ function Restore-DNNSite {
     [parameter(Mandatory=$false)]
     [DnnProduct]$sourceProduct = [DnnProduct]::DnnPlatform,
     [parameter(Mandatory=$false)]
-    [string]$oldDomain = ''
+    [string]$oldDomain = '',
+    [parameter(Mandatory=$false)]
+    [switch]$includeSource = $false
   );
  
   $siteZipFile = Get-Item $siteZip
@@ -130,9 +132,8 @@ function Restore-DNNSite {
     $databaseBackup = $siteZipFile.FullName
   }
 
-  $version = if ($sourceVersion -ne '') { $sourceVersion } else { $defaultDNNVersion }
-  $includeSource = $sourceVersion -ne ''
-  New-DNNSite $siteName -siteZip:$siteZip -databaseBackup:$databaseBackup -version:$version -includeSource:$includeSource -oldDomain:$oldDomain
+  $includeSource = $includeSource -or $sourceVersion -ne ''
+  New-DNNSite $siteName -siteZip:$siteZip -databaseBackup:$databaseBackup -version:$sourceVersion -includeSource:$includeSource -oldDomain:$oldDomain
 
 <#
 .SYNOPSIS
@@ -399,7 +400,7 @@ function Extract-Packages {
   param(
     [parameter(Mandatory=$true,position=0)]
     [string]$siteName,
-    [parameter(Mandatory=$true,position=1)]
+    [parameter(Mandatory=$false,position=1)]
     [string]$version,
     [parameter(Mandatory=$true,position=2)]
     [DnnProduct]$product = [DnnProduct]::DnnPlatform,
@@ -408,6 +409,24 @@ function Extract-Packages {
     [switch]$useUpgradePackage
   );
 
+  if ($version -eq '') {
+    Write-Verbose 'No version supplied'
+    if ($siteZip -eq '') {
+        Write-Verbose "No site backup, defaulting to $defaultDNNVersion"
+        $version = $defaultDNNVersion
+    } else {
+        if ((Get-Item $siteZip).PSIsContainer) {
+            $assemblyPath = "$siteZip\bin\DotNetNuke.dll"
+        } else {
+            Read-Archive $siteZip | Where-Object Path -match '\bbin\\DotNetNuke\.dll$' | Expand-Archive -OutputPath $env:TEMP -FlattenPaths -Force
+            $assemblyPath = "$env:TEMP\DotNetNuke.dll"
+        }
+
+        $version = (Get-FileVersionInfo $assemblyPath).ProductVersion
+        Write-Verbose "Found version $version of DotNetNuke.dll"
+    }
+  }
+ 
   $v = New-Object System.Version($version)
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
