@@ -389,22 +389,10 @@ function Extract-Zip {
   );
 
   Write-Verbose "extracting from $zipFile to $output"
-  try {
-    $outputFile = [System.IO.Path]::GetTempFileName()
-    $process =  Start-Process 7za -ArgumentList "x -y -o`"$output`" `"$zipFile`"" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
-    if ($process.ExitCode -ne 0) {
-      if ($process.ExitCode -eq 1) {
-        Write-Warning "Non-fatal error extracting $zipFile, opening 7-Zip output"
-      } else {
-        Write-Warning "Error extracting $zipFile, opening 7-Zip output"
-      }
-      notepad $outputFile
-      Start-Sleep -s 1 #sleep for one second to make sure notepad has enough time to open the file before it's deleted
-    }
+  if (-not (Test-Path $output)) {
+    mkdir $output | Out-Null
   }
-  finally {
-    Remove-Item $outputFile
-  }
+  Expand-Archive $zipFile -Output $output -ShowProgress
 }
 
 function Extract-Packages {
@@ -420,11 +408,6 @@ function Extract-Packages {
     [switch]$useUpgradePackage
   );
 
-  if (-not (Get-Command "7za" -ErrorAction SilentlyContinue)) {
-    Write-Warning "You must have the 7-Zip command line tool in your path to unzip the site"
-    Break
-  }
- 
   $v = New-Object System.Version($version)
   $majorVersion = $v.Major
   $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
