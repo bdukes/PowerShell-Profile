@@ -391,10 +391,31 @@ function Extract-Zip {
   );
 
   Write-Verbose "extracting from $zipFile to $output"
-  if (-not (Test-Path $output)) {
-    mkdir $output | Out-Null
+  if (Get-Command "7za" -ErrorAction SilentlyContinue) {
+      try {
+        $outputFile = [System.IO.Path]::GetTempFileName()
+        $process =  Start-Process 7za -ArgumentList "x -y -o`"$output`" `"$zipFile`"" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
+        if ($process.ExitCode -ne 0) {
+          if ($process.ExitCode -eq 1) {
+            Write-Warning "Non-fatal error extracting $zipFile, opening 7-Zip output"
+          } else {
+            Write-Warning "Error extracting $zipFile, opening 7-Zip output"
+          }
+
+          Edit-File $outputFile
+          Start-Sleep -s 1 #sleep for one second to make sure notepad has enough time to open the file before it's deleted
+        }
+      }
+      finally {
+        Remove-Item $outputFile
+      }
+  } else {
+      Write-Verbose 'Couldn''t find 7-Zip (try running ''choco install 7zip.commandline''), expanding with PSCX''s (slower) Expand-Archive cmdlet'
+      if (-not (Test-Path $output)) {
+        mkdir $output | Out-Null
+      }
+      Expand-Archive $zipFile -Output $output -ShowProgress
   }
-  Expand-Archive $zipFile -Output $output -ShowProgress
 }
 
 function Extract-Packages {
