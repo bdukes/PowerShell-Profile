@@ -5,19 +5,19 @@ Set-StrictMode -Version:Latest
 function Add-HostFileEntry {
   param(
     [parameter(Mandatory=$true,position=0)]
-	[string]$hostName,
+    [string]$hostName,
     [string]$ipAddress = '127.0.0.1'
   );
     Assert-AdministratorRole;
 
-	$hostsLocation = "$env:windir\System32\drivers\etc\hosts";
+    $hostsLocation = "$env:windir\System32\drivers\etc\hosts";
     $hostsContent = Get-Content -Path $hostsLocation -Raw;
     
     $ipRegex = [regex]::Escape($ipAddress);
     $hostRegex = [regex]::Escape($hostName);
     
     $existingEntry = $hostsContent -match "(?:`n|\A)\s*$ipRegex\s+$hostRegex\s*(?:`n|\Z)";
-	if(-not $existingEntry) {
+    if(-not $existingEntry) {
         if ($hostsContent -notmatch "`n\s*$") {
             # Add line break if missing from last line
             Write-Verbose -Message "Adding blank line to $hostsLocation";
@@ -25,8 +25,8 @@ function Add-HostFileEntry {
         }
 
         Write-Verbose -Message "Adding entry mapping $hostName to $ipAddress to $hostsLocation";
-		Add-Content -Path $hostsLocation -Value "$ipAddress`t`t$hostName";
-	} else {
+        Add-Content -Path $hostsLocation -Value "$ipAddress`t`t$hostName";
+    } else {
         Write-Verbose -Message "Entry mapping $hostName to $ipAddress already exists in $hostsLocation";
     }
 <#
@@ -44,12 +44,12 @@ function Add-HostFileEntry {
 function Remove-HostFileEntry {
   param(
     [parameter(Mandatory=$true,position=0)]
-	[string]$hostName,
+    [string]$hostName,
     [string]$ipAddress = '127.0.0.1'
   );
     Assert-AdministratorRole;
 
-	$hostsLocation = "$env:windir\System32\drivers\etc\hosts";
+    $hostsLocation = "$env:windir\System32\drivers\etc\hosts";
     
     $ipRegex = [regex]::Escape($ipAddress);
     $hostRegex = [regex]::Escape($hostName);
