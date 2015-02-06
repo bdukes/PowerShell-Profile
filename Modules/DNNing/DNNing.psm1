@@ -433,10 +433,7 @@ function Extract-Packages {
 
   if ($version -eq '') {
     Write-Verbose 'No version supplied'
-    if ($siteZip -eq '') {
-        Write-Verbose "No site backup, defaulting to $defaultDNNVersion"
-        $version = $defaultDNNVersion
-    } else {
+    if ($siteZip -ne '') {
         if ((Get-Item $siteZip).PSIsContainer) {
             $assemblyPath = "$siteZip\bin\DotNetNuke.dll"
         } else {
@@ -447,6 +444,10 @@ function Extract-Packages {
         $version = (Get-FileVersionInfo $assemblyPath).ProductVersion
         Write-Verbose "Found version $version of DotNetNuke.dll"
     }
+  }
+
+  if ($version -eq '') {
+    $version = $defaultDNNVersion
   }
  
   $v = New-Object System.Version($version)
