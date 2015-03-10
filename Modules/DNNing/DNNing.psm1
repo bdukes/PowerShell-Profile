@@ -32,14 +32,22 @@ function Install-DNNResources {
         throw 'You must specify the site name (e.g. dnn.dev) if you are not in the website'
     }
 
-    $result = Invoke-WebRequest "http://$siteName/Install/Install.aspx?mode=InstallResources"
+    try 
+    {
+        $result = Invoke-WebRequest "http://$siteName/Install/Install.aspx?mode=InstallResources"
 
-    if ($result.StatusCode -ne 200) {
-        Write-Warning 'There was an error trying to install the resources'
-        return
+        if ($result.StatusCode -ne 200) {
+            
+            Write-Warning "There was an error trying to install the resources: Status code $($result.StatusCode)"
+            return
+        }
+
+        Write-HtmlNode $result.ParsedHtml.documentElement
     }
-
-    Write-HtmlNode $result.ParsedHtml.documentElement
+    catch
+    {
+        Write-Warning "There was an error trying to install the resources: $_"
+    }
 
 <#
 .SYNOPSIS
