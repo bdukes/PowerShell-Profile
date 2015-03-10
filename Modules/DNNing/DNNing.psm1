@@ -374,17 +374,24 @@ function New-DNNSite {
 
 function getPackageName([System.Version]$version, [DnnProduct]$product) {
     $72version = New-Object System.Version("7.2")
+    $74version = New-Object System.Version("7.4")
     if ($version -lt $72version) {
         $productPackageNames = @{ 
             [DnnProduct]::DnnPlatform = "DotNetNuke_Community"
             [DnnProduct]::EvoqContent = "DotNetNuke_Professional"
             [DnnProduct]::EvoqContentEnterprise = "DotNetNuke_Enterprise"
         }
-    } else {
+    } elseif ($version -lt $74version) {
         $productPackageNames = @{ 
             [DnnProduct]::DnnPlatform = "DNN_Platform"
             [DnnProduct]::EvoqContent = "Evoq_Content"
             [DnnProduct]::EvoqContentEnterprise = "Evoq_Enterprise"
+        }
+    } else {
+        $productPackageNames = @{ 
+            [DnnProduct]::DnnPlatform = "DNN_Platform"
+            [DnnProduct]::EvoqContent = "Evoq_Content_Basic"
+            [DnnProduct]::EvoqContentEnterprise = "Evoq_Content"
         }
     }
     return $productPackageNames.Get_Item($product)
