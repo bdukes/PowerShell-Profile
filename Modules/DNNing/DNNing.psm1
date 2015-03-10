@@ -26,6 +26,7 @@ function Install-DNNResources {
 
     if ($siteName -eq '' -and $PWD.Provider.Name -eq 'FileSystem' -and $PWD.Path.StartsWith('C:\inetpub\wwwroot\')) {
         $siteName = $PWD.Path.Split('\')[3]
+        Write-Verbose "Site name is '$siteName'"
     }
 
     if ($siteName -eq '') {
