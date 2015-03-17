@@ -2,6 +2,8 @@
 #Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole
 Set-StrictMode -Version:Latest
 
+Import-Module WebAdministration
+
 Push-Location
 Import-Module SQLPS -DisableNameChecking
 Pop-Location
@@ -115,6 +117,116 @@ function Remove-DNNSite {
     Destroys a DNN site, removing it from the file system, IIS, and the database
 .PARAMETER siteName
     The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+#>
+}
+
+function Rename-DNNSite {
+  param(
+    [parameter(Mandatory=$true,position=0)]
+    [string]$oldSiteName,
+    [parameter(Mandatory=$true,position=1)]
+    [string]$newSiteName
+  );
+ 
+  Assert-AdministratorRole
+
+  if ((Test-Path IIS:\AppPools\$oldSiteName) -and (Get-WebAppPoolState $oldSiteName).Value -eq 'Started') {
+    $appPool = Stop-WebAppPool $oldSiteName -Passthru
+    while ($appPool.State -ne 'Stopped') {
+        Start-Sleep -m 100
+    }
+  }
+
+  if (Test-Path C:\inetpub\wwwroot\$oldSiteName) {
+    Write-Host "Renaming C:\inetpub\wwwroot\$oldSiteName to $newSiteName"
+    Rename-Item C:\inetpub\wwwroot\$oldSiteName $newSiteName
+  } else {
+    Write-Host "C:\inetpub\wwwroot\$oldSiteName does not exist"
+  }
+
+  Set-ItemProperty IIS:\Sites\$oldSiteName -Name PhysicalPath -Value C:\inetpub\wwwroot\$newSiteName\Website
+  Remove-WebBinding -Name:$oldSiteName -HostHeader:$oldSiteName
+  New-WebBinding -Name:$oldSiteName -IP:'*' -Port:80 -Protocol:'http' -HostHeader:$newSiteName
+
+  if (Test-Path IIS:\Sites\$oldSiteName) {
+    Write-Host "Renaming $oldSiteName website in IIS to $newSiteName"
+    Rename-Item IIS:\Sites\$oldSiteName $newSiteName
+  } else {
+    Write-Host "$oldSiteName website not found in IIS"
+  }
+ 
+  if (Test-Path IIS:\AppPools\$oldSiteName) {
+    Write-Host "Renaming $oldSiteName app pool in IIS to $newSiteName"
+    Rename-Item IIS:\AppPools\$oldSiteName $newSiteName
+  } else {
+    Write-Host "$oldSiteName app pool not found in IIS"
+  }
+
+  Set-ItemProperty IIS:\Sites\$newSiteName -Name ApplicationPool -Value $newSiteName
+ 
+  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $oldSiteName)") {
+    Write-Host "Closing connections to $oldSiteName database"
+    Invoke-Sqlcmd -Query:"ALTER DATABASE [$oldSiteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance:. -Database:master
+    Write-Host "Renaming $oldSiteName database to $newSiteName"
+    Invoke-Sqlcmd -Query:"ALTER DATABASE [$oldSiteName] MODIFY NAME = [$newSiteName];" -ServerInstance:. -Database:master
+    Invoke-Sqlcmd -Query:"ALTER DATABASE [$newSiteName] SET MULTI_USER WITH ROLLBACK IMMEDIATE;" -ServerInstance:. -Database:master
+  } else {
+    Write-Host "$oldSiteName database not found"
+  }
+
+  if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$newSiteName")")) {
+    Write-Host "Creating SQL Server login for IIS AppPool\$newSiteName"
+    Invoke-Sqlcmd -Query:"CREATE LOGIN [IIS AppPool\$newSiteName] FROM WINDOWS WITH DEFAULT_DATABASE = [$newSiteName];" -Database:master
+  }
+  Write-Host "Creating SQL Server user"
+  Invoke-Sqlcmd -Query:"CREATE USER [IIS AppPool\$newSiteName] FOR LOGIN [IIS AppPool\$newSiteName];" -Database:$newSiteName
+  Write-Host "Adding SQL Server user to db_owner role"
+  Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$newSiteName';" -Database:$newSiteName
+ 
+  $ownedRoles = Invoke-SqlCmd -Query:"SELECT p2.name FROM sys.database_principals p1 JOIN sys.database_principals p2 ON p1.principal_id = p2.owning_principal_id WHERE p1.name = 'IIS AppPool\$oldSiteName';" -Database:$newSiteName
+  foreach ($roleRow in $ownedRoles) {
+    $roleName = $roleRow.name
+    Invoke-SqlCmd -Query:"ALTER AUTHORIZATION ON ROLE::[$roleName] TO [IIS AppPool\$newSiteName];" -Database:$newSiteName
+  }
+
+  Invoke-Sqlcmd -Query:"DROP USER [IIS AppPool\$oldSiteName];" -Database:$newSiteName
+
+  if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$oldSiteName")") {
+    Write-Host "Dropping IIS AppPool\$oldSiteName database login"
+    Invoke-Sqlcmd -Query:"DROP LOGIN [IIS AppPool\$oldSiteName];" -Database:master
+  } else {
+    Write-Host "IIS AppPool\$oldSiteName database login not found"
+  }
+
+  Set-ModifyPermission C:\inetpub\wwwroot\$newSiteName\Website $newSiteName
+
+  [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$newSiteName\Website\web.config
+  $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
+  $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
+  $connectionString = "Data Source=.`;Initial Catalog=$newSiteName`;Integrated Security=true"
+  $webConfig.configuration.connectionStrings.add | ? { $_.name -eq 'SiteSqlServer' } | ForEach-Object { $_.connectionString = $connectionString }
+  $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | ForEach-Object { $_.value = $connectionString }  
+  $webConfig.Save("C:\inetpub\wwwroot\$newSiteName\Website\web.config")
+
+  Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldSiteName', '$newSiteName')" -Database:$newSiteName
+
+  Remove-HostFileEntry $oldSiteName
+  Add-HostFileEntry $newSiteName
+   
+  Start-WebAppPool $newSiteName
+
+  Write-Host "Launching http://$newSiteName"
+  Start-Process -FilePath:http://$newSiteName
+
+<#
+.SYNOPSIS
+    Renames a DNN site
+.DESCRIPTION
+    Renames a DNN site in the file system, IIS, and the database
+.PARAMETER oldSiteName
+    The current name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+.PARAMETER newSiteName
+    The new name to which the site should be renamed
 #>
 }
 
@@ -689,6 +801,7 @@ function Watermark-Logos {
 
 Export-ModuleMember Install-DNNResources
 Export-ModuleMember Remove-DNNSite
+Export-ModuleMember Rename-DNNSite
 Export-ModuleMember New-DNNSite
 Export-ModuleMember Upgrade-DNNSite
 Export-ModuleMember Restore-DNNSite
