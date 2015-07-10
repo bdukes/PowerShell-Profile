@@ -1,6 +1,13 @@
 Set-StrictMode -Version Latest
 
-function Write-HtmlNode($node, $indent = '') {
+function Write-HtmlNode($node, $indent = '', [switch]$excludeAttributes, [switch]$excludeEmptyElements, [switch]$excludeComments) {
+    if ($excludeEmptyElements -and $node.nodeName -ne '#text' -and $node.nodeName -ne '#comment' -and $node.canHaveChildren -eq $false) {
+        return
+    }
+    if ($excludeComments -and $node.nodeName -eq '#comment') {
+        return
+    }
+
     Write-Host $indent -NoNewline
     if ($node.nodeName -eq '#text') {
         Write-Host $node.nodeValue -ForegroundColor Red
@@ -11,12 +18,14 @@ function Write-HtmlNode($node, $indent = '') {
     }
     Write-Host '<' -NoNewline -ForegroundColor Gray
     Write-Host $node.nodeName -NoNewline -ForegroundColor Blue
-    foreach ($attr in ($node.attributes | ? { $_.Specified })) {
-        Write-Host ' ' -NoNewline
-        Write-Host $attr.name -NoNewline -ForegroundColor Magenta
-        Write-Host '="' -NoNewline -ForegroundColor Gray
-        Write-Host $attr.value -NoNewline -ForegroundColor Yellow
-        Write-Host '"' -NoNewline -ForegroundColor Gray
+    if ($excludeAttributes -eq $false) {
+        foreach ($attr in ($node.attributes | ? { $_.Specified })) {
+            Write-Host ' ' -NoNewline
+            Write-Host $attr.name -NoNewline -ForegroundColor Magenta
+            Write-Host '="' -NoNewline -ForegroundColor Gray
+            Write-Host $attr.value -NoNewline -ForegroundColor Yellow
+            Write-Host '"' -NoNewline -ForegroundColor Gray
+        }
     }
     if ($node.canHaveChildren -eq $false) {
         Write-Host ' />' -ForegroundColor Gray
@@ -26,7 +35,7 @@ function Write-HtmlNode($node, $indent = '') {
     $child = $node.firstChild
     $childIndent = $indent + '  '
     while ($child -ne $null) {
-        write-htmlNode $child $childIndent
+        write-htmlNode $child $childIndent -excludeAttributes:$excludeAttributes -excludeEmptyElements:$excludeEmptyElements -excludeComments:$excludeComments
         $child = $child.nextSibling
     }
     Write-Host $indent -NoNewline
@@ -40,6 +49,12 @@ function Write-HtmlNode($node, $indent = '') {
     An HTML node, probably from (Invoke-WebRequest $url).ParsedHtml.documentElement
 .PARAMETER indent
     How much of an indent to add before the first node
+.PARAMETER excludeAttributes
+    Whether to display attributes of the elements
+.PARAMETER excludeEmptyElements
+    Whether to display elements that cannot have any content
+.PARAMETER excludeComments
+    Whether to display the HTML comments
 #>
 }
 
