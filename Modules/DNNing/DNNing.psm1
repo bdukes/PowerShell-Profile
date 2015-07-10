@@ -45,7 +45,7 @@ function Install-DNNResources {
             return
         }
 
-        Write-HtmlNode $result.ParsedHtml.documentElement
+        Write-HtmlNode $result.ParsedHtml.documentElement -excludeAttributes -excludeEmptyElements -excludeComments
     }
     catch
     {
