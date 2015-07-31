@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 Import-Module Pscx -RequiredVersion 3.2.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
 Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
+Set-Alias rm Remove-ItemSafely -Option AllScope
 $www = $env:www
 
 Import-VisualStudioVars 2013 amd64 
