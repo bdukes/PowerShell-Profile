@@ -11,33 +11,6 @@ $www = $env:www
 Import-VisualStudioVars 2013 amd64 
 $env:Platform = "Any CPU"
 
-function Set-ModifyPermission {
-    param(
-        [parameter(Mandatory=$true,position=0)]$directory, 
-        [parameter(Mandatory=$true,position=1)]$username, 
-        $domain = 'IIS APPPOOL');
-
-    Assert-AdministratorRole
-
-    $inherit = [system.security.accesscontrol.InheritanceFlags]"ContainerInherit, ObjectInherit"
-    $propagation = [system.security.accesscontrol.PropagationFlags]"None"
-
-    if ($domain -eq 'IIS APPPOOL') {
-        Import-Module WebAdministration
-        $sid = (Get-ItemProperty IIS:\AppPools\$username).ApplicationPoolSid
-        $identifier = New-Object System.Security.Principal.SecurityIdentifier($sid)
-        $user = $identifier.Translate([System.Security.Principal.NTAccount])
-    } else {
-        $user = New-Object System.Security.Principal.NTAccount($domain, $username)
-    }
-
-    $accessrule = New-Object system.security.AccessControl.FileSystemAccessRule($user, "Modify", $inherit, $propagation, "Allow")
-
-    $acl = Get-Acl $directory
-    $acl.AddAccessRule($accessrule)
-    set-acl -aclobject $acl $directory
-}
-
 function GitTfs-Clone {
     param(
         [parameter(Mandatory=$true,position=0)]$tfsPath, 
