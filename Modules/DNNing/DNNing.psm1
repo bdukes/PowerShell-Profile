@@ -519,10 +519,17 @@ function Extract-Zip {
   );
 
   Write-Verbose "extracting from $zipFile to $output"
-  if (Get-Command "7za" -ErrorAction SilentlyContinue) {
+  if (Get-Command '7zG' -ErrorAction SilentlyContinue) {
+    $commandName = '7zG'
+  } elseif (Get-Command '7za' -ErrorAction SilentlyContinue) {
+    $commandName = '7za'
+  } else {
+    $commandName = $false
+  }
+  if ($commandName) {
       try {
         $outputFile = [System.IO.Path]::GetTempFileName()
-        $process =  Start-Process 7za -ArgumentList "x -y -o`"$output`" `"$zipFile`"" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
+        $process =  Start-Process $commandName -ArgumentList "x -y -o`"$output`" -- `"$zipFile`"" -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outputFile
         if ($process.ExitCode -ne 0) {
           if ($process.ExitCode -eq 1) {
             Write-Warning "Non-fatal error extracting $zipFile, opening 7-Zip output"
