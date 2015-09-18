@@ -8,7 +8,7 @@ Set-Alias sudo Invoke-Elevated
 Set-Alias rm Remove-ItemSafely -Option AllScope
 $www = $env:www
 
-Import-VisualStudioVars 2013 amd64 
+Invoke-BatchFile $env:VS140COMNTOOLS\VsMSBuildCmd.bat 
 $env:Platform = "Any CPU"
 
 function GitTfs-Clone {
