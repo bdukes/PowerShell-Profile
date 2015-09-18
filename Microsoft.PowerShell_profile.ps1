@@ -11,6 +11,16 @@ $www = $env:www
 Invoke-BatchFile $env:VS140COMNTOOLS\VsMSBuildCmd.bat 
 $env:Platform = "Any CPU"
 
+function Search-AllTextFiles {
+    param(
+        [parameter(Mandatory=$true,position=0)]$Pattern, 
+        [switch]$CaseSensitive,
+        [switch]$SimpleMatch
+    );
+
+    Get-ChildItem . * -Recurse -Exclude ('*.dll','*.pdf','*.pdb','*.zip','*.exe','*.jpg','*.gif','*.png','*.ico','*.svg','*.bmp','*.psd','*.cache','*.doc','*.docx','*.xls','*.xlsx','*.dat','*.mdf','*.nupkg','*.snk','*.ttf','*.eot','*.woff','*.tdf','*.gen','*.cfs') | Select-String -Pattern:$pattern -SimpleMatch:$SimpleMatch -CaseSensitive:$CaseSensitive
+}
+
 function GitTfs-Clone {
     param(
         [parameter(Mandatory=$true,position=0)]$tfsPath, 
