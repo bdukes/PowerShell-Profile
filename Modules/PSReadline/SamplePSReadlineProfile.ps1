@@ -29,7 +29,7 @@ Set-PSReadlineKeyHandler -Key Ctrl+B `
     [PSConsoleUtilities.PSConsoleReadLine]::AcceptLine()
 }
 
-# In Emacs mode - Tab is acts like in bash, but the Windows style completion
+# In Emacs mode - Tab acts like in bash, but the Windows style completion
 # is still useful sometimes, so bind some keys so we can do both
 Set-PSReadlineKeyHandler -Key Ctrl+Q -Function TabCompleteNext
 Set-PSReadlineKeyHandler -Key Ctrl+Shift+Q -Function TabCompletePrevious
@@ -37,10 +37,6 @@ Set-PSReadlineKeyHandler -Key Ctrl+Shift+Q -Function TabCompletePrevious
 # Clipboard interaction is bound by default in Windows mode, but not Emacs mode.
 Set-PSReadlineKeyHandler -Key Shift+Ctrl+C -Function Copy
 Set-PSReadlineKeyHandler -Key Ctrl+V -Function Paste
-
-# Demo mode is great for giving demos of PSReadline,
-Set-PSReadlineKeyHandler -Chord 'Ctrl+D,Ctrl+E' -Function EnableDemoMode
-Set-PSReadlineKeyHandler -Chord 'Ctrl+D,Ctrl+D' -Function DisableDemoMode
 
 # CaptureScreen is good for blog posts or email showing a transaction
 # of what you did when asking for help or demonstrating a technique.
@@ -199,18 +195,31 @@ Set-PSReadlineKeyHandler -Key Ctrl+Shift+v `
 }
 
 # Sometimes you want to get a property of invoke a member on what you've entered so far
-# but you need parens to do that.  This binding will help by putting parens around the whole line.
+# but you need parens to do that.  This binding will help by putting parens around the current selection,
+# or if nothing is selected, the whole line.
 Set-PSReadlineKeyHandler -Key 'Alt+(' `
-                         -BriefDescription ParenthesizeLine `
-                         -LongDescription "Put parenthesis around the entire line and move the cursor to the end of line" `
+                         -BriefDescription ParenthesizeSelection `
+                         -LongDescription "Put parenthesis around the selection or entire line and move the cursor to after the closing parenthesis" `
                          -ScriptBlock {
     param($key, $arg)
+
+    $selectionStart = $null
+    $selectionLength = $null
+    [PSConsoleUtilities.PSConsoleReadLine]::GetSelectionState([ref]$selectionStart, [ref]$selectionLength)
 
     $line = $null
     $cursor = $null
     [PSConsoleUtilities.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
-    [PSConsoleUtilities.PSConsoleReadLine]::Replace(0, $line.Length, '(' + $line + ')')
-    [PSConsoleUtilities.PSConsoleReadLine]::EndOfLine()
+    if ($selectionStart -ne -1)
+    {
+        [PSConsoleUtilities.PSConsoleReadLine]::Replace($selectionStart, $selectionLength, '(' + $line.SubString($selectionStart, $selectionLength) + ')')
+        [PSConsoleUtilities.PSConsoleReadLine]::SetCursorPosition($selectionStart + $selectionLength + 2)
+    }
+    else
+    {
+        [PSConsoleUtilities.PSConsoleReadLine]::Replace(0, $line.Length, '(' + $line + ')')
+        [PSConsoleUtilities.PSConsoleReadLine]::EndOfLine()
+    }
 }
 
 # Each time you press Alt+', this key handler will change the token
@@ -351,6 +360,71 @@ Set-PSReadlineKeyHandler -Key F1 `
             if ($commandName -ne $null)
             {
                 Get-Help $commandName -ShowWindow
+            }
+        }
+    }
+}
+
+
+#
+# Ctrl+Shift+j then type a key to mark the current directory.
+# Ctrj+j then the same key will change back to that directory without
+# needing to type cd and won't change the command line.
+
+#
+$global:PSReadlineMarks = @{}
+
+Set-PSReadlineKeyHandler -Key Ctrl+Shift+j `
+                         -BriefDescription MarkDirectory `
+                         -LongDescription "Mark the current directory" `
+                         -ScriptBlock {
+    param($key, $arg)
+
+    $key = [Console]::ReadKey($true)
+    $global:PSReadlineMarks[$key.KeyChar] = $pwd
+}
+
+Set-PSReadlineKeyHandler -Key Ctrl+j `
+                         -BriefDescription JumpDirectory `
+                         -LongDescription "Goto the marked directory" `
+                         -ScriptBlock {
+    param($key, $arg)
+
+    $key = [Console]::ReadKey()
+    $dir = $global:PSReadlineMarks[$key.KeyChar]
+    if ($dir)
+    {
+        cd $dir
+        [PSConsoleUtilities.PSConsoleReadLine]::InvokePrompt()
+    }
+}
+
+Set-PSReadlineKeyHandler -Key Alt+j `
+                         -BriefDescription ShowDirectoryMarks `
+                         -LongDescription "Show the currently marked directories" `
+                         -ScriptBlock {
+    param($key, $arg)
+
+    $global:PSReadlineMarks.GetEnumerator() | % {
+        [PSCustomObject]@{Key = $_.Key; Dir = $_.Value} } |
+        Format-Table -AutoSize | Out-Host
+
+    [PSConsoleUtilities.PSConsoleReadLine]::InvokePrompt()
+}
+
+Set-PSReadlineOption -CommandValidationHandler {
+    param([System.Management.Automation.Language.CommandAst]$CommandAst)
+
+    switch ($CommandAst.GetCommandName())
+    {
+        'git' {
+            $gitCmd = $CommandAst.CommandElements[1].Extent
+            switch ($gitCmd.Text)
+            {
+                'cmt' {
+                    [PSConsoleUtilities.PSConsoleReadLine]::Replace(
+                        $gitCmd.StartOffset, $gitCmd.EndOffset - $gitCmd.StartOffset, 'commit')
+                }
             }
         }
     }
