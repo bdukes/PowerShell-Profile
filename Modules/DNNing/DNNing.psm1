@@ -1,5 +1,5 @@
 #Requires -Version 3
-#Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole
+#Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole, PKI
 Set-StrictMode -Version:Latest
 
 Import-Module WebAdministration
@@ -69,6 +69,14 @@ function Remove-DNNSite {
   );
  
   Assert-AdministratorRole
+
+  #TODO: remove certificate
+  if (Test-Path IIS:\SslBindings\!443!$siteName) {
+    Write-Host "Removing $siteName SSL binding from IIS"
+    Remove-Item IIS:\SslBindings\!443!$siteName
+  } else {
+    Write-Host "$siteName SSL binding not found in IIS"
+  }
 
   if (Test-Path IIS:\Sites\$siteName) {
     Write-Host "Removing $siteName website from IIS"
@@ -338,7 +346,17 @@ function New-DNNSite {
   New-WebAppPool $siteName
   Write-Host "Creating IIS site"
   New-Website $siteName -HostHeader:$siteName -PhysicalPath:C:\inetpub\wwwroot\$siteName\Website -ApplicationPool:$siteName
-  # TODO: Setup SSL cert & binding (in lieu of setting SSLEnabled to False below)
+
+  Write-Host 'Adding SSL binding to IIS site'
+  $cert = New-SelfSignedCertificate -DnsName $siteName -CertStoreLocation Cert:\LocalMachine\My
+  New-WebBinding -Name:$siteName -HostHeader:$siteName -Protocol:https -SslFlags:1
+  New-Item -Path:"IIS:\SslBindings\!443!$siteName" -Value:$cert -SSLFlags:1
+  
+  Write-Host 'Trusting generated SSL certificate' #based on https://stackoverflow.com/a/21001534
+  $store = New-Object System.Security.Cryptography.X509Certificates.X509Store 'Root','CurrentUser'
+  $store.Open('ReadWrite')
+  $store.Add($cert)
+  $store.Close()
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
@@ -388,7 +406,8 @@ function New-DNNSite {
             $existingBinding = Get-WebBinding -Name:$siteName -HostHeader:$aliasHost
             if ($existingBinding -eq $null) {
                 Write-Verbose "Setting up IIS binding and HOSTS entry for $aliasHost"
-                New-WebBinding -Name:$siteName -IP:'*' -Port:80 -Protocol:'http' -HostHeader:$aliasHost
+                New-WebBinding -Name:$siteName -IP:'*' -Port:80 -Protocol:http -HostHeader:$aliasHost
+                #TODO: add SSL binding
                 Add-HostFileEntry $aliasHost
             } else {
                 Write-Verbose "IIS binding already exists for $aliasHost"
@@ -424,9 +443,6 @@ function New-DNNSite {
 
     Write-Host "Turning off search crawler"
     Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'Schedule' $databaseOwner $objectQualifier) SET Enabled = 0 WHERE TypeFullName = 'DotNetNuke.Professional.SearchCrawler.SearchSpider.SearchSpider, DotNetNuke.Professional.SearchCrawler'" -Database:$siteName
-
-    Write-Host "Turning off SSL"
-    Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalSettings' $databaseOwner $objectQualifier) SET SettingValue = 'False' WHERE SettingName = 'SSLEnabled'" -Database:$siteName
 
     Write-Host "Setting all passwords to 'pass'"
     Invoke-Sqlcmd -Query:"UPDATE aspnet_Membership SET PasswordFormat = 0, Password = 'pass'" -Database:$siteName
