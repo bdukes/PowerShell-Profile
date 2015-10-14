@@ -1,6 +1,6 @@
 ﻿#Requires -Version 3
 #Requires -Modules PSReadLine, AdministratorRole, Set-ModifiedTime
-Set-StrictMode -Version Latest
+#Set-StrictMode -Version Latest
 
 Import-Module Pscx -RequiredVersion 3.2.0.0 -arg "$(Split-Path $profile -parent)\Pscx.UserPreferences.ps1"
 Set-Alias touch Set-ModifiedTime
