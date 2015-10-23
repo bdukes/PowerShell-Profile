@@ -29,7 +29,7 @@ function GitTfs-Clone {
         [switch]$export);
 
     if ($export) {
-        $authorsFile = Join-Path $pwd authors.txt
+        $authorsFile = Join-Path $PSScriptRoot authors.txt
         git tfs clone $tfsServer "$tfsPath" "$gitPath" --ignorecase=true --fetch-labels  --export --authors="$authorsFile"
     } else {
         git tfs clone $tfsServer "$tfsPath" "$gitPath" --ignorecase=true --fetch-labels
