@@ -16,7 +16,7 @@ Add-Type -TypeDefinition @"
       DnnPlatform,
       EvoqContent,
       EvoqContentEnterprise,
-      ////EvoqSocial, // TODO: support Social
+      ////EvoqSocial, // TODO: support Social/Engage
    }
 "@
 
@@ -444,6 +444,9 @@ function New-DNNSite {
     Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPUsername'" -Database:$siteName
     Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = '' WHERE SettingName = 'SMTPPassword'" -Database:$siteName
 
+    Write-Host 'Clearing WebServers table'
+    Invoke-Sqlcmd -Query:"TRUNCATE TABLE $(Get-DNNDatabaseObjectName 'WebServers' $databaseOwner $objectQualifier)" -Database:$siteName
+    
     Write-Host "Turning off event log buffer"
     Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'HostSettings' $databaseOwner $objectQualifier) SET SettingValue = 'N' WHERE SettingName = 'EventLogBuffer'" -Database:$siteName
 
