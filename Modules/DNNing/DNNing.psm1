@@ -358,12 +358,6 @@ function New-DNNSite {
   $store.Add($cert)
   $store.Close()
 
-  #add to Firefox trusted store
-  $certFile = Export-Certificate -Cert:$cert -FilePath:$env:TEMP\$siteName.crt -Type:CERT
-  foreach ($firefoxProfile in (Get-ChildItem $env:USERPROFILE\AppData\Roaming\Mozilla\Firefox\Profiles\)) {
-    & "$PSScriptRoot\bin\certutil.exe" -A -n "$siteName" -t C -i $certFile -d $firefoxProfile
-  }
-
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
  
