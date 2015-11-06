@@ -37,7 +37,7 @@ function Install-DNNResources {
 
     try 
     {
-        $result = Invoke-WebRequest "http://$siteName/Install/Install.aspx?mode=InstallResources"
+        $result = Invoke-WebRequest "https://$siteName/Install/Install.aspx?mode=InstallResources"
 
         if ($result.StatusCode -ne 200) {
             
@@ -223,8 +223,8 @@ function Rename-DNNSite {
    
   Start-WebAppPool $newSiteName
 
-  Write-Host "Launching http://$newSiteName"
-  Start-Process -FilePath:http://$newSiteName
+  Write-Host "Launching https://$newSiteName"
+  Start-Process -FilePath:https://$newSiteName
 
 <#
 .SYNOPSIS
@@ -298,8 +298,8 @@ function Upgrade-DNNSite {
  
   Extract-Packages -SiteName:$siteName -Version:$version -Product:$product -IncludeSource:$includeSource -UseUpgradePackage
 
-  Write-Host "Launching http://$siteName/Install/Install.aspx?mode=upgrade"
-  Start-Process -FilePath:http://$siteName/Install/Install.aspx?mode=upgrade
+  Write-Host "Launching https://$siteName/Install/Install.aspx?mode=upgrade"
+  Start-Process -FilePath:https://$siteName/Install/Install.aspx?mode=upgrade
 
 <#
 .SYNOPSIS
@@ -482,8 +482,8 @@ function New-DNNSite {
   Write-Host "Adding SQL Server user to db_owner role"
   Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$siteName';" -Database:$siteName
  
-  Write-Host "Launching http://$siteName"
-  Start-Process -FilePath:http://$siteName
+  Write-Host "Launching https://$siteName"
+  Start-Process -FilePath:https://$siteName
 
 <#
 .SYNOPSIS
@@ -656,10 +656,10 @@ function Extract-Packages {
     Write-Host "Updating site URL in sln files"
     Get-ChildItem C:\inetpub\wwwroot\$siteName\*.sln | ForEach-Object { 
         $slnContent = (Get-Content $_);
-        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"http://$siteName`"";
-        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Professional"', "`"http://$siteName`"";
-        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Enterprise"', "`"http://$siteName`"";
-        $slnContent = $slnContent -replace '"http://localhost/DNN_Platform"', "`"http://$siteName`""; # DNN 7.1.2+
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"https://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Professional"', "`"https://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Enterprise"', "`"https://$siteName`"";
+        $slnContent = $slnContent -replace '"http://localhost/DNN_Platform"', "`"https://$siteName`""; # DNN 7.1.2+
         Set-Content $_ $slnContent;
     }
   }
@@ -804,7 +804,7 @@ function Update-WizardUrls {
         [xml]$wizardXml = Get-Content $wizardManifest
         foreach($urlNode in $wizardXml.GetElementsByTagName("NextUrl")) {
             if ([System.Uri]::TryCreate([string]$urlNode.InnerText, [System.UriKind]::Absolute, [ref] $uri)) {
-                $urlNode.InnerText = "http://$siteName" + $uri.AbsolutePath
+                $urlNode.InnerText = "https://$siteName" + $uri.AbsolutePath
             }
         }
 
