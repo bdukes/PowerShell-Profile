@@ -1,5 +1,5 @@
 #Requires -Version 3
-#Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole, PKI
+#Requires -Modules WebAdministration, Add-HostFileEntry, AdministratorRole, PKI, HTTPS
 Set-StrictMode -Version:Latest
 
 Import-Module WebAdministration
@@ -347,16 +347,7 @@ function New-DNNSite {
   Write-Host "Creating IIS site"
   New-Website $siteName -HostHeader:$siteName -PhysicalPath:C:\inetpub\wwwroot\$siteName\Website -ApplicationPool:$siteName
 
-  Write-Host 'Adding SSL binding to IIS site'
-  $cert = New-SelfSignedCertificate -DnsName $siteName -CertStoreLocation Cert:\LocalMachine\My
-  New-WebBinding -Name:$siteName -HostHeader:$siteName -Protocol:https -SslFlags:1
-  New-Item -Path:"IIS:\SslBindings\!443!$siteName" -Value:$cert -SSLFlags:1
-  
-  Write-Host 'Trusting generated SSL certificate' #based on https://stackoverflow.com/a/21001534
-  $store = New-Object System.Security.Cryptography.X509Certificates.X509Store 'Root','CurrentUser'
-  $store.Open('ReadWrite')
-  $store.Add($cert)
-  $store.Close()
+  New-SslWebBinding $siteName
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
   Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
@@ -418,11 +409,15 @@ function New-DNNSite {
             $existingBinding = Get-WebBinding -Name:$siteName -HostHeader:$aliasHost -Port:$port
             if ($existingBinding -eq $null) {
                 Write-Verbose "Setting up IIS binding and HOSTS entry for $aliasHost"
-                #TODO: add SSL binding
                 New-WebBinding -Name:$siteName -IP:'*' -Port:$port -Protocol:http -HostHeader:$aliasHost
                 Add-HostFileEntry $aliasHost
             } else {
                 Write-Verbose "IIS binding already exists for $aliasHost"
+            }
+
+            $existingSslBinding = Get-WebBinding -Name:$siteName -HostHeader:$aliasHost -Port:443
+            if ($existingSslBinding -eq $null) {
+                New-SslWebBinding -siteName:$siteName -HostHeader:$aliasHost
             }
         }
     }
