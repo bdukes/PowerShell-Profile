@@ -32,7 +32,7 @@ function Install-DNNResources {
     }
 
     if ($siteName -eq '') {
-        throw 'You must specify the site name (e.g. dnn.dev) if you are not in the website'
+        throw 'You must specify the site name (e.g. dnn.local) if you are not in the website'
     }
 
     try 
@@ -58,7 +58,7 @@ function Install-DNNResources {
 .DESCRIPTION
     Starts the Install Resources mode of the installer, installing all extension packages in the Install folder of the website
 .PARAMETER siteName
-    The name of the site (the domain, folder name, and database name, e.g. dnn.dev).  If not specified, this is derived from the current folder path
+    The name of the site (the domain, folder name, and database name, e.g. dnn.local).  If not specified, this is derived from the current folder path
 #>
 }
 
@@ -124,7 +124,7 @@ function Remove-DNNSite {
 .DESCRIPTION
     Destroys a DNN site, removing it from the file system, IIS, and the database
 .PARAMETER siteName
-    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+    The name of the site (the domain, folder name, and database name, e.g. dnn.local)
 #>
 }
 
@@ -232,7 +232,7 @@ function Rename-DNNSite {
 .DESCRIPTION
     Renames a DNN site in the file system, IIS, and the database
 .PARAMETER oldSiteName
-    The current name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+    The current name of the site (the domain, folder name, and database name, e.g. dnn.local)
 .PARAMETER newSiteName
     The new name to which the site should be renamed
 #>
@@ -271,7 +271,7 @@ function Restore-DNNSite {
 .DESCRIPTION
     Restores a DNN site from a file system zip and database backup
 .PARAMETER siteName
-    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+    The name of the site (the domain, folder name, and database name, e.g. dnn.local)
 .PARAMETER siteZip
     The full path to the zip (any format that 7-Zip can expand) of the site's file system, or the full path to a folder with the site's contents
 .PARAMETER databaseBackup
@@ -307,7 +307,7 @@ function Upgrade-DNNSite {
 .DESCRIPTION
     Upgrades an existing DNN site to the specified version
 .PARAMETER siteName
-    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+    The name of the site (the domain, folder name, and database name, e.g. dnn.local)
 .PARAMETER version
     The version of DNN to which the site should be upgraded.  Defaults to $defaultDNNVersion
 .PARAMETER product
@@ -484,7 +484,7 @@ function New-DNNSite {
 .DESCRIPTION
     Creates a DNN site, either from a file system zip and database backup, or a new installation
 .PARAMETER siteName
-    The name of the site (the domain, folder name, and database name, e.g. dnn.dev)
+    The name of the site (the domain, folder name, and database name, e.g. dnn.local)
 .PARAMETER version
     The DNN version  Defaults to $defaultDnnVersion
 .PARAMETER product
