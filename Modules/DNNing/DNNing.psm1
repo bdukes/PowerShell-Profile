@@ -393,9 +393,21 @@ function New-DNNSite {
                 $childAlias = $null
             }
 
+            if ($aliasHost -Like '*:*') {
+                $split = $aliasHost.Split(':')
+                $aliasHost = $split[0]
+                $port = $split[1]
+            } else {
+                $port = 80
+            }
+
             if ($aliasHost -NotLike "*$siteName*") {
                 $aliasHost = $aliasHost + $siteNameExtension
                 $newAlias = $aliasHost
+                if ($port -ne 80) {
+                    $newAlias = $newAlias + ':' + $port
+                }
+
                 if ($childAlias) {
                     $newAlias = $newAlias + '/' + $childAlias
                 }
@@ -403,11 +415,11 @@ function New-DNNSite {
                 Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = '$newAlias' WHERE HTTPAlias = '$alias'" -Database:$siteName
             }
 
-            $existingBinding = Get-WebBinding -Name:$siteName -HostHeader:$aliasHost
+            $existingBinding = Get-WebBinding -Name:$siteName -HostHeader:$aliasHost -Port:$port
             if ($existingBinding -eq $null) {
                 Write-Verbose "Setting up IIS binding and HOSTS entry for $aliasHost"
-                New-WebBinding -Name:$siteName -IP:'*' -Port:80 -Protocol:http -HostHeader:$aliasHost
                 #TODO: add SSL binding
+                New-WebBinding -Name:$siteName -IP:'*' -Port:$port -Protocol:http -HostHeader:$aliasHost
                 Add-HostFileEntry $aliasHost
             } else {
                 Write-Verbose "IIS binding already exists for $aliasHost"
