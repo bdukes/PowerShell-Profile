@@ -1,5 +1,6 @@
 Microsoft.PowerShellISE_profile.ps1
 Modules/PsGet/
 Modules/ScriptBrowser/
+Modules/ModuleBrowser/
 Scripts/
 authors.txt
