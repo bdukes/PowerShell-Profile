@@ -10,7 +10,7 @@ function Write-HtmlNode($node, $indent = '', [switch]$excludeAttributes, [switch
 
     Write-Host $indent -NoNewline
     if ($node.nodeName -eq '#text') {
-        Write-Host $node.nodeValue -ForegroundColor Red
+        Write-Host $node.nodeValue -ForegroundColor White
         return
     } elseif ($node.nodeName -eq '#comment') {
         Write-Host $node.OuterHtml -ForegroundColor DarkGreen
