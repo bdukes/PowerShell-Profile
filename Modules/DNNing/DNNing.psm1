@@ -613,8 +613,16 @@ function Extract-Packages {
  
   $v = New-Object System.Version($version)
   $majorVersion = $v.Major
-  $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
-  if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
+  if ($majorVersion -gt 7) {
+    $formattedVersion = $v.Major.ToString('0') + '.' + $v.Minor.ToString('0') + '.' + $v.Build.ToString('0')
+  } else {
+    $formattedVersion = $v.Major.ToString('0#') + '.' + $v.Minor.ToString('0#') + '.' + $v.Build.ToString('0#')
+    if ($formattedVersion -eq '06.01.04') { $formattedVersion = '06.01.04.127' }
+    if ($product -eq [DnnProduct]::EvoqContentEnterprise) {
+      if ($formattedVersion -eq '07.03.01') { $formattedVersion = '7.3.1.20' }
+      if ($formattedVersion -eq '07.03.02') { $formattedVersion = '7.3.2' }
+    }
+  }
   Write-Verbose "Formatted Version is $formattedVersion"
   
   $packageName = getPackageName $v $product
