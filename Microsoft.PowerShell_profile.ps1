@@ -74,5 +74,3 @@ function prompt {
     Write-Host "`nλ" -NoNewline -ForegroundColor DarkGreen
     return ' '
 }
-
-Enable-GitColors
