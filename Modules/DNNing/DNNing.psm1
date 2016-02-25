@@ -10,6 +10,9 @@ Pop-Location
 
 $defaultDNNVersion = '7.4.2'
 
+$www = $env:www
+if ($www -eq $null) { $www = '$www' }
+
 Add-Type -TypeDefinition @"
    public enum DnnProduct
    {
@@ -26,7 +29,7 @@ function Install-DNNResources {
         [string]$siteName
     );
 
-    if ($siteName -eq '' -and $PWD.Provider.Name -eq 'FileSystem' -and $PWD.Path.StartsWith('C:\inetpub\wwwroot\')) {
+    if ($siteName -eq '' -and $PWD.Provider.Name -eq 'FileSystem' -and $PWD.Path.StartsWith('$www\')) {
         $siteName = $PWD.Path.Split('\')[3]
         Write-Verbose "Site name is '$siteName'"
     }
@@ -91,12 +94,12 @@ function Remove-DNNSite {
   } else {
     Write-Host "$siteName app pool not found in IIS"
   }
- 
-  if (Test-Path C:\inetpub\wwwroot\$siteName) {
-    Write-Host "Deleting C:\inetpub\wwwroot\$siteName"
-    Remove-Item C:\inetpub\wwwroot\$siteName -Recurse -Force
+  
+  if (Test-Path $www\$siteName) {
+    Write-Host "Deleting $www\$siteName"
+    Remove-Item $www\$siteName -Recurse -Force
   } else {
-    Write-Host "C:\inetpub\wwwroot\$siteName does not exist"
+    Write-Host "$www\$siteName does not exist"
   }
 
   if (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Databases\$(Encode-SQLName $siteName)") {
@@ -145,14 +148,14 @@ function Rename-DNNSite {
     }
   }
 
-  if (Test-Path C:\inetpub\wwwroot\$oldSiteName) {
-    Write-Host "Renaming C:\inetpub\wwwroot\$oldSiteName to $newSiteName"
-    Rename-Item C:\inetpub\wwwroot\$oldSiteName $newSiteName
+  if (Test-Path $www\$oldSiteName) {
+    Write-Host "Renaming $www\$oldSiteName to $newSiteName"
+    Rename-Item $www\$oldSiteName $newSiteName
   } else {
-    Write-Host "C:\inetpub\wwwroot\$oldSiteName does not exist"
+    Write-Host "$www\$oldSiteName does not exist"
   }
 
-  Set-ItemProperty IIS:\Sites\$oldSiteName -Name PhysicalPath -Value C:\inetpub\wwwroot\$newSiteName\Website
+  Set-ItemProperty IIS:\Sites\$oldSiteName -Name PhysicalPath -Value $www\$newSiteName\Website
   Remove-WebBinding -Name:$oldSiteName -HostHeader:$oldSiteName
   New-WebBinding -Name:$oldSiteName -IP:'*' -Port:80 -Protocol:'http' -HostHeader:$newSiteName
 
@@ -206,15 +209,15 @@ function Rename-DNNSite {
     Write-Host "IIS AppPool\$oldSiteName database login not found"
   }
 
-  Set-ModifyPermission C:\inetpub\wwwroot\$newSiteName\Website $newSiteName
+  Set-ModifyPermission $www\$newSiteName\Website $newSiteName
 
-  [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$newSiteName\Website\web.config
+  [xml]$webConfig = Get-Content $www\$newSiteName\Website\web.config
   $objectQualifier = $webConfig.configuration.dotnetnuke.data.providers.add.objectQualifier.TrimEnd('_')
   $databaseOwner = $webConfig.configuration.dotnetnuke.data.providers.add.databaseOwner.TrimEnd('.')
   $connectionString = "Data Source=.`;Initial Catalog=$newSiteName`;Integrated Security=true"
   $webConfig.configuration.connectionStrings.add | ? { $_.name -eq 'SiteSqlServer' } | ForEach-Object { $_.connectionString = $connectionString }
   $webConfig.configuration.appSettings.add | ? { $_.key -eq 'SiteSqlServer' } | ForEach-Object { $_.value = $connectionString }  
-  $webConfig.Save("C:\inetpub\wwwroot\$newSiteName\Website\web.config")
+  $webConfig.Save("$www\$newSiteName\Website\web.config")
 
   Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'PortalAlias' $databaseOwner $objectQualifier) SET HTTPAlias = REPLACE(HTTPAlias, '$oldSiteName', '$newSiteName')" -Database:$newSiteName
 
@@ -345,14 +348,14 @@ function New-DNNSite {
   Write-Host "Creating IIS app pool"
   New-WebAppPool $siteName
   Write-Host "Creating IIS site"
-  New-Website $siteName -HostHeader:$siteName -PhysicalPath:C:\inetpub\wwwroot\$siteName\Website -ApplicationPool:$siteName
+  New-Website $siteName -HostHeader:$siteName -PhysicalPath:$www\$siteName\Website -ApplicationPool:$siteName
 
   New-SslWebBinding $siteName
 
   Write-Host "Setting modify permission on website files for IIS AppPool\$siteName"
-  Set-ModifyPermission C:\inetpub\wwwroot\$siteName\Website $siteName
+  Set-ModifyPermission $www\$siteName\Website $siteName
  
-  [xml]$webConfig = Get-Content C:\inetpub\wwwroot\$siteName\Website\web.config
+  [xml]$webConfig = Get-Content $www\$siteName\Website\web.config
   if ($databaseBackup -eq '') {
     Write-Host "Creating new database"
     New-DNNDatabase $siteName
@@ -433,7 +436,7 @@ function New-DNNSite {
         Invoke-Sqlcmd -Query:"UPDATE $(Get-DNNDatabaseObjectName 'CAT_Settings' $databaseOwner $objectQualifier) SET PostItems = 0, StorePaymentTypes = 32, StoreCCTypes = 23, CCLogin = '${env:CatalookTestCCLogin}', CCPassword = '${env:CatalookTestCCPassword}', CCMerchantHash = '${env:CatalookTestCCMerchantHash}', StoreCurrencyid = 2, CCPaymentProcessorID = 59, LicenceKey = '${env:CatalookTestLicenseKey}', StoreEmail = '${env:CatalookTestStoreEmail}', Skin = '${env:CatalookTestSkin}', EmailTemplatePackage = '${env:CatalookTestEmailTemplatePackage}', CCTestMode = 1, EnableAJAX = 1" -Database:$siteName
     }
 
-    if (Test-Path C:\inetpub\wwwroot\$siteName\Website\DesktopModules\EngageSports) {
+    if (Test-Path $www\$siteName\Website\DesktopModules\EngageSports) {
         Write-Host 'Updating Engage: Sports wizard URLs'
         Update-WizardUrls $siteName
     }
@@ -471,7 +474,7 @@ function New-DNNSite {
   $webConfig.configuration['system.web'].membership.providers.add | ? { $_.type -eq 'System.Web.Security.SqlMembershipProvider' } | ForEach-Object { $_.minRequiredPasswordLength = '4' }
   Write-Host "Updating web.config to turn on debug mode"
   $webConfig.configuration['system.web'].compilation.debug = 'true'
-  $webConfig.Save("C:\inetpub\wwwroot\$siteName\Website\web.config")
+  $webConfig.Save("$www\$siteName\Website\web.config")
  
   if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$siteName")")) {
     Write-Host "Creating SQL Server login for IIS AppPool\$siteName"
@@ -645,8 +648,8 @@ function Extract-Packages {
         Write-Verbose "Fallback Source Path is $sourcePath"
         if (-not (Test-Path $sourcePath)) { Write-Error "Fallback source package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Extract DNN $formattedVersion community source" -CategoryTargetName:$sourcePath -TargetObject:$sourcePath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     }
-    Write-Verbose "extracting from $sourcePath to C:\inetpub\wwwroot\$siteName"
-    Extract-Zip "C:\inetpub\wwwroot\$siteName" "$sourcePath"
+    Write-Verbose "extracting from $sourcePath to $www\$siteName"
+    Extract-Zip "$www\$siteName" "$sourcePath"
     
     Write-Host "Copying DNN $formattedVersion source symbols into install directory"
     $symbolsPath = "$packagesFolder\${packageName}_${formattedVersion}_Symbols.zip"
@@ -658,11 +661,11 @@ function Extract-Packages {
         Write-Verbose "Fallback Symbols Path is $sourcePath"
         if (-not (Test-Path $symbolsPath)) { Write-Error "Fallback symbols package does not exist, either" -Category:ObjectNotFound -CategoryActivity:"Copy DNN $formattedVersion community source symbols" -CategoryTargetName:$symbolsPath -TargetObject:$symbolsPath -CategoryTargetType:".zip file" -CategoryReason:"File does not exist" }
     }
-    Write-Verbose "cp $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module"
-    Copy-Item $symbolsPath C:\inetpub\wwwroot\$siteName\Website\Install\Module
+    Write-Verbose "cp $symbolsPath $www\$siteName\Website\Install\Module"
+    Copy-Item $symbolsPath $www\$siteName\Website\Install\Module
 
     Write-Host "Updating site URL in sln files"
-    Get-ChildItem C:\inetpub\wwwroot\$siteName\*.sln | ForEach-Object { 
+    Get-ChildItem $www\$siteName\*.sln | ForEach-Object { 
         $slnContent = (Get-Content $_);
         $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Community"', "`"https://$siteName`"";
         $slnContent = $slnContent -replace '"http://localhost/DotNetNuke_Professional"', "`"https://$siteName`"";
@@ -691,7 +694,7 @@ function Extract-Packages {
     $from = $siteZip
     $siteZipOutput = $null
   } else {
-    $siteZipOutput = "C:\inetpub\wwwroot\$siteName\Extracted_Website"
+    $siteZipOutput = "$www\$siteName\Extracted_Website"
     Extract-Zip "$siteZipOutput" "$siteZip"
  
     $from = $siteZipOutput
@@ -702,7 +705,7 @@ function Extract-Packages {
   }
  
   # add * only if the directory already exists, based on https://groups.google.com/d/msg/microsoft.public.windows.powershell/iTEakZQQvh0/TLvql_87yzgJ
-  $to = "C:\inetpub\wwwroot\$siteName\Website"
+  $to = "$www\$siteName\Website"
   $from += '/'
   if (Test-Path $to -PathType Container) { $from += '*' }
   Copy-Item $from $to -Force -Recurse
@@ -808,7 +811,7 @@ function Update-WizardUrls {
     );
 
     $uri = $null
-    foreach ($wizardManifest in (ls C:\inetpub\wwwroot\$siteName\Website\DesktopModules\EngageSports\*Wizard*.xml)) {
+    foreach ($wizardManifest in (ls $www\$siteName\Website\DesktopModules\EngageSports\*Wizard*.xml)) {
         [xml]$wizardXml = Get-Content $wizardManifest
         foreach($urlNode in $wizardXml.GetElementsByTagName("NextUrl")) {
             if ([System.Uri]::TryCreate([string]$urlNode.InnerText, [System.UriKind]::Absolute, [ref] $uri)) {
@@ -832,7 +835,7 @@ function Watermark-Logos {
     $logos = Invoke-Sqlcmd -Query:"SELECT HomeDirectory + N'/' + LogoFile AS Logo FROM $(Get-DNNDatabaseObjectName 'Vw_Portals' $databaseOwner $objectQualifier) WHERE LogoFile IS NOT NULL" -Database:$siteName
     $watermarkText = $siteNameExtension.Substring(1)
     foreach ($logo in $logos) {
-        $logoFile = "C:\inetpub\wwwroot\$siteName\Website\" + $logo.Logo.Replace('/', '\')
+        $logoFile = "$www\$siteName\Website\" + $logo.Logo.Replace('/', '\')
         mogrify -font Arial -pointsize 60 -draw "gravity Center fill #00ff00 text 0,0 $watermarkText" -draw "gravity NorthEast fill #ff00ff text 0,0 $watermarkText" -draw "gravity SouthWest fill #00ffff text 0,0 $watermarkText" -draw "gravity NorthWest fill #ff0000 text 0,0 $watermarkText" -draw "gravity SouthEast fill #0000ff text 0,0 $watermarkText" $logoFile
     }
   } else {
