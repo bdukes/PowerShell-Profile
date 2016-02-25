@@ -6,10 +6,13 @@ Import-Module Pscx -RequiredVersion 3.2.0.0 -arg "$(Split-Path $profile -parent)
 Set-Alias touch Set-ModifiedTime
 Set-Alias sudo Invoke-Elevated
 Set-Alias rm Remove-ItemSafely -Option AllScope
-$www = $env:www
 
-Invoke-BatchFile $env:VS140COMNTOOLS\VsMSBuildCmd.bat 
 $env:Platform = "Any CPU"
+if (Test-Path $env:VS140COMNTOOLS\VsMSBuildCmd.bat) {
+    Invoke-BatchFile $env:VS140COMNTOOLS\VsMSBuildCmd.bat 
+}
+
+$www = $env:www
 
 function Search-AllTextFiles {
     param(
