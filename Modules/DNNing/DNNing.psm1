@@ -11,7 +11,7 @@ Pop-Location
 $defaultDNNVersion = '7.4.2'
 
 $www = $env:www
-if ($www -eq $null) { $www = '$www' }
+if ($www -eq $null) { $www = 'C:\inetpub\wwwroot' }
 
 Add-Type -TypeDefinition @"
    public enum DnnProduct
