@@ -1,5 +1,5 @@
-PowerShell -cur_console:f
+{PowerShell::PowerShell}
 
-*PowerShell
+{PowerShell::PowerShell as Admin} -cur_console:a
 
-PowerShell -cur_console:d:C:\inetpub\wwwroot
+{PowerShell::PowerShell} -cur_console:d:C:\inetpub\wwwroot
