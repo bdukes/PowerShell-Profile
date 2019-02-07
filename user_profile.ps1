@@ -10,8 +10,8 @@ Set-PSReadlineKeyHandler -Key Tab -Function Complete
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward
 Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
 
-Import-Module Pscx -arg $PSScriptRoot\Pscx.UserPreferences.ps1
-Set-Alias sudo Invoke-Elevated
+#Import-Module Pscx -arg $PSScriptRoot\Pscx.UserPreferences.ps1
+#Set-Alias sudo Invoke-Elevated
 Set-Alias rm Remove-ItemSafely -Option AllScope
 
 $env:Platform = 'Any CPU'
