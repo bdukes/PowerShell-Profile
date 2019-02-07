@@ -9,6 +9,7 @@ function Write-Theme {
     )
 
     $lastColor = $sl.Colors.PromptBackgroundColor
+
     $prompt = Write-Prompt -Object $sl.PromptSymbols.StartSymbol -ForegroundColor $sl.Colors.PromptForegroundColor -BackgroundColor $sl.Colors.SessionInfoBackgroundColor
 
     #check the last command state and indicate if failed
@@ -58,6 +59,13 @@ function Write-Theme {
 
     if ($with) {
         $prompt += Write-Prompt -Object "$($with.ToUpper()) " -BackgroundColor $sl.Colors.WithBackgroundColor -ForegroundColor $sl.Colors.WithForegroundColor
+    }
+
+    $nvs = nvs.ps1 auto
+    if ($nvs) {
+        $version = node --version
+        $prompt += Write-Prompt -Object "(node $version)" -BackgroundColor $sl.Colors.WithBackgroundColor -ForegroundColor $sl.Colors.WithForegroundColor
+        $prompt += ' '
     }
 
     $prompt += Write-Prompt -Object $sl.PromptSymbols.PromptIndicator -ForegroundColor $sl.Colors.PromptBackgroundColor
