@@ -15,9 +15,12 @@ Set-Alias sudo Invoke-Elevated
 Set-Alias rm Remove-ItemSafely -Option AllScope
 
 $env:Platform = 'Any CPU'
-#Import-VisualStudioVars 150
-if ($env:VS150COMNTOOLS -and (Test-Path $env:VS150COMNTOOLS)) {
-    Invoke-BatchFile (Join-Path $env:VS150COMNTOOLS VsDevCmd.bat) -Parameters '-no_logo'
+$studioInstance = Get-VSSetupInstance -All | Select-VSSetupInstance -Require 'Microsoft.VisualStudio.Workload.NetWeb' -Version 15.0 -Latest
+if ($studioInstance) {
+    $scriptPath = Join-Path $studioInstance.InstallationPath 'Common7\Tools\VsDevCmd.bat'
+    if (Test-Path $scriptPath) {
+        & $scriptPath;
+    }
 }
 
 $www = $env:www
