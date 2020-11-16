@@ -18,9 +18,24 @@ Set-Alias rm Remove-ItemSafely -Option AllScope;
 $env:Platform = 'Any CPU';
 $studioInstance = Get-VSSetupInstance -All | Select-VSSetupInstance -Require 'Microsoft.VisualStudio.Workload.NetWeb' -Version 15.0 -Latest;
 if ($studioInstance) {
-    $scriptPath = Join-Path $studioInstance.InstallationPath 'Common7\Tools\VsDevCmd.bat'
-    if (Test-Path $scriptPath) {
-        & $scriptPath;
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        Import-Module "$($studioInstance.InstallationPath)\Common7\Tools\Microsoft.VisualStudio.DevShell.dll";
+        Enter-VsDevShell -VsInstanceId $studioInstance.InstanceId -StartInPath $PWD;
+    }
+    else {
+        $scriptPath = Join-Path $studioInstance.InstallationPath 'Common7\Tools\VsDevCmd.bat';
+        if (Test-Path $scriptPath) {
+            & $scriptPath;
+        }
+
+        $msbuild = Get-Command msbuild -ErrorAction SilentlyContinue;
+        if (-not $msbuild) {
+            $exe = Get-ChildItem (Join-Path $studioInstance.InstallationPath 'MSBuild\**\Bin\MSBuild.exe');
+            if ($exe) {
+                $dir = Split-Path $exe;
+                $env:Path += (';' + $dir + ';');
+            }
+        }
     }
 }
 
