@@ -1,4 +1,5 @@
 #Requires -Version 3
+#Requires -Modules VSSetup, oh-my-posh
 #Set-StrictMode -Version Latest
 
 Import-Module oh-my-posh;
