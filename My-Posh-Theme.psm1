@@ -68,8 +68,13 @@ function Write-Theme {
         $prompt += ' '
     }
 
-    $prompt += Write-Prompt -Object $sl.PromptSymbols.PromptIndicator -ForegroundColor $sl.Colors.PromptBackgroundColor
-    $prompt += ' '
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        $prompt += Write-Prompt -Object "PS$($sl.PromptSymbols.PromptIndicator) " -ForegroundColor $sl.Colors.PromptBackgroundColor
+    }
+    else {
+        $prompt += Write-Prompt -Object "pwsh$($sl.PromptSymbols.PromptIndicator) " -ForegroundColor $sl.Colors.PromptBackgroundColor
+    }
+
     $prompt
 }
 
