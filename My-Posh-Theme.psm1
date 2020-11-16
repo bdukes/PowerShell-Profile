@@ -15,6 +15,13 @@ function Write-Theme {
     #check the last command state and indicate if failed
     if ($lastCommandFailed) {
         $prompt += Write-Prompt -Object "$($sl.PromptSymbols.FailedCommandSymbol) " -ForegroundColor $sl.Colors.CommandFailedIconForegroundColor -BackgroundColor $sl.Colors.SessionInfoBackgroundColor
+
+        if ($Error.Count -ne 0) {
+            $prompt += Write-Prompt -Object "$($sl.PromptSymbols.FailedCommandSymbol) ERR " -ForegroundColor $sl.Colors.CommandFailedIconForegroundColor -BackgroundColor $sl.Colors.SessionInfoBackgroundColor
+        }
+        if ($LASTEXITCODE -ne '') {
+            $prompt += Write-Prompt -Object "$($sl.PromptSymbols.FailedCommandSymbol) $LASTEXITCODE " -ForegroundColor $sl.Colors.CommandFailedIconForegroundColor -BackgroundColor $sl.Colors.SessionInfoBackgroundColor
+        }
     }
 
     #check for elevated prompt
