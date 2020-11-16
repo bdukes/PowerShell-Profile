@@ -74,10 +74,10 @@ function Write-Theme {
 }
 
 $sl = $global:ThemeSettings #local settings
-$sl.PromptSymbols.StartSymbol = ' '
-$sl.PromptSymbols.PromptIndicator = [char]::ConvertFromUtf32(0x276F)
-$sl.PromptSymbols.SegmentForwardSymbol = [char]::ConvertFromUtf32(0xE0B0)
-$sl.PromptSymbols.TruncatedFolderSymbol = [char]::ConvertFromUtf32(0x2026)
+$sl.PromptSymbols.StartSymbol = ''
+$sl.PromptSymbols.PromptIndicator = [char]::ConvertFromUtf32(0x276F) # ❯
+$sl.PromptSymbols.SegmentForwardSymbol = [char]::ConvertFromUtf32(0xE0B0) #  (triangle)
+$sl.PromptSymbols.TruncatedFolderSymbol = [char]::ConvertFromUtf32(0x2026) # …
 $sl.Colors.PromptForegroundColor = [ConsoleColor]::White
 $sl.Colors.PromptSymbolColor = [ConsoleColor]::White
 $sl.Colors.PromptHighlightColor = [ConsoleColor]::DarkBlue
