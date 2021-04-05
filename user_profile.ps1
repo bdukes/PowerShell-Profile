@@ -3,10 +3,10 @@
 #Set-StrictMode -Version Latest
 
 Import-Module oh-my-posh;
-$ThemeSettings.MyThemesLocation = $PSScriptRoot;
-Set-Theme My-Posh-Theme;
+Set-PoshPrompt "$PSScriptRoot/My-Posh-Theme.json";
 [ScriptBlock]$Prompt = $function:prompt;
 
+Import-Module posh-git;
 Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
 Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward;
