@@ -1,5 +1,5 @@
 #Requires -Version 3
-#Requires -Modules VSSetup, oh-my-posh
+#Requires -Modules VSSetup, oh-my-posh, posh-git, Terminal-Icons
 #Set-StrictMode -Version Latest
 
 Import-Module oh-my-posh;
@@ -7,6 +7,8 @@ Set-PoshPrompt "$PSScriptRoot/My-Posh-Theme.json";
 [ScriptBlock]$Prompt = $function:prompt;
 
 Import-Module posh-git;
+Import-Module Terminal-Icons;
+
 Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
 Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward;
