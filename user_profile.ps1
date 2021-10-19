@@ -1,10 +1,8 @@
 #Requires -Version 3
-#Requires -Modules VSSetup, oh-my-posh, posh-git, Terminal-Icons
+#Requires -Modules VSSetup, posh-git, Terminal-Icons
 #Set-StrictMode -Version Latest
 
-Import-Module oh-my-posh;
-Set-PoshPrompt "$PSScriptRoot/My-Posh-Theme.json";
-[ScriptBlock]$Prompt = $function:prompt;
+oh-my-posh --init --shell pwsh --config "$PSScriptRoot/My-Posh-Theme.json" | Invoke-Expression;
 
 Import-Module Terminal-Icons;
 if (Get-Command git -ErrorAction SilentlyContinue) {
