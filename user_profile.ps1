@@ -6,8 +6,10 @@ Import-Module oh-my-posh;
 Set-PoshPrompt "$PSScriptRoot/My-Posh-Theme.json";
 [ScriptBlock]$Prompt = $function:prompt;
 
-Import-Module posh-git;
 Import-Module Terminal-Icons;
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    Import-Module posh-git;
+}
 
 Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
