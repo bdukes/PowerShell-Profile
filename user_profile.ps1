@@ -13,6 +13,10 @@ Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
 Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward;
 
+Set-PSReadLineOption -PredictionSource History;
+Set-PSReadLineOption -PredictionViewStyle ListView;
+Set-PSReadLineOption -EditMode Windows;
+
 #Import-Module Pscx -arg $PSScriptRoot\Pscx.UserPreferences.ps1;
 #Set-Alias sudo Invoke-Elevated;
 Set-Alias rm Remove-ItemSafely -Option AllScope;
