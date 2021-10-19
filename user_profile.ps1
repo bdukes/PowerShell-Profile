@@ -52,3 +52,33 @@ function Search-AllTextFiles {
 
     Get-ChildItem . * -Recurse -Exclude ('*.dll', '*.pdf', '*.pdb', '*.zip', '*.exe', '*.jpg', '*.gif', '*.png', '*.ico', '*.svg', '*.bmp', '*.tif', '*.tiff', '*.psd', '*.cache', '*.doc', '*.docx', '*.xls', '*.xlsx', '*.dat', '*.mdf', '*.nupkg', '*.snk', '*.ttf', '*.eot', '*.woff', '*.tdf', '*.gen', '*.cfs', '*.map', '*.min.js', '*.data', '*.tis', '*.fdt', '*.pack', 'index', '*.ide', '*.tmp') | Select-String -Pattern:$pattern -SimpleMatch:$SimpleMatch -CaseSensitive:$CaseSensitive;
 }
+
+function New-TerminalTab {
+    $cmd = $args[0];
+    $rest = $args[1..($args.length - 1)];
+    $cmd = Get-Command $cmd;
+    if ($cmd) {
+        $cmd = $cmd.Source;
+    }
+    else {
+        $cmd = $args[0];
+    }
+	
+    Write-Verbose "wt.exe --window 0 new-tab --startingDirectory $PWD $cmd $rest";
+    wt.exe --window 0 new-tab --startingDirectory $PWD $cmd @rest;
+}
+
+function New-TerminalPane {
+    $cmd = $args[0];
+    $rest = $args[1..($args.length - 1)];
+    $cmd = Get-Command $cmd;
+    if ($cmd) {
+        $cmd = $cmd.Source;
+    }
+    else {
+        $cmd = $args[0];
+    }
+	
+    Write-Verbose "wt.exe --window 0 split-pane --startingDirectory $PWD $cmd $rest";
+    wt.exe --window 0 split-pane --startingDirectory $PWD $cmd @rest;
+}
