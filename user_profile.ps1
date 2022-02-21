@@ -2,12 +2,14 @@
 #Requires -Modules VSSetup, posh-git, Terminal-Icons
 #Set-StrictMode -Version Latest
 
-oh-my-posh --init --shell pwsh --config "$PSScriptRoot/My-Posh-Theme.json" | Invoke-Expression;
-
-Import-Module Terminal-Icons;
 if (Get-Command git -ErrorAction SilentlyContinue) {
     Import-Module posh-git;
 }
+$env:POSH_GIT_ENABLED = $true;
+
+oh-my-posh --init --shell pwsh --config "$PSScriptRoot/My-Posh-Theme.json" | Invoke-Expression;
+
+Import-Module Terminal-Icons;
 
 Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
