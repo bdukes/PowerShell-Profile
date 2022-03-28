@@ -7,10 +7,8 @@
         {
           "background": "#546E7A",
           "foreground": "#D4E157",
-          "properties": {
-            "template": " \uf0e7 \ue0b1"
-          },
           "style": "plain",
+          "template": " \uf0e7 \ue0b1",
           "type": "root"
         },
         {
@@ -21,28 +19,24 @@
             "folder_separator_icon": " \ue0b1 ",
             "home_icon": "\uf7db",
             "mixed_threshold": 8,
-            "style": "mixed",
-            "template": " {{ .Path }} "
+            "style": "mixed"
           },
           "style": "plain",
+          "template": " {{ .Path }} ",
           "type": "path"
         },
         {
           "background": "#546E7A",
           "foreground": "#D4E157",
           "style": "plain",
-          "properties": {
-            "template": "<#26C6DA>\ue0b1</> {{ .Status }}"
-          },
+          "template": "<#26C6DA>\ue0b1</> {{ .Status }}",
           "type": "poshgit"
         },
         {
           "background": "transparent",
           "foreground": "#546E7A",
-          "properties": {
-            "template": "\ue0b0"
-          },
           "style": "plain",
+          "template": "\ue0b0",
           "type": "text"
         }
       ],
@@ -55,10 +49,8 @@
           "background": "#546E7A",
           "foreground": "#D4E157",
           "leading_diamond": "\ue0b2",
-          "properties": {
-            "template": " {{ if .SSHSession }}\uf817 {{ end }}{{ .UserName }}@{{ .HostName }} <#26C6DA>\ue0b3</>"
-          },
           "style": "diamond",
+          "template": " {{ if .SSHSession }}\uf817 {{ end }}{{ .UserName }}@{{ .HostName }} <#26C6DA>\ue0b3</>",
           "type": "session"
         },
         {
@@ -66,74 +58,68 @@
           "foreground": "#D4E157",
           "properties": {
             "style": "austin",
-            "template": " {{ .FormattedMs }} \ufbab <#26C6DA>\ue0b3</>",
             "threshold": 500
           },
           "style": "plain",
+          "template": " {{ .FormattedMs }} \ufbab <#26C6DA>\ue0b3</>",
           "type": "executiontime"
         },
         {
           "background": "#546E7A",
           "foreground": "#D4E157",
           "properties": {
-            "template": " {{ .CurrentDate | date .Format }} \uf017 ",
             "time_format": "15:04:05"
           },
           "style": "plain",
+          "template": " {{ .CurrentDate | date .Format }} \uf017 ",
           "type": "time"
         }
       ],
       "type": "prompt"
     },
     {
-      "newline": true,
       "alignment": "left",
+      "newline": true,
       "segments": [
         {
           "foreground": "#546E7A",
-          "properties": {
-            "template": " {{ if .WSL }}WSL at {{ end }}{{.Icon}} \u276f"
-          },
           "style": "plain",
+          "template": " {{ if .WSL }}WSL at {{ end }}{{.Icon}} \u276f",
           "type": "os"
         },
         {
           "foreground": "#546E7A",
-          "properties": {
-            "template": " \ue77f {{ if .Unsupported }}\uf071{{ else }}{{ .Full }}{{ end }} \u276f"
-          },
           "style": "powerline",
+          "template": " \ue77f {{ if .Unsupported }}\uf071{{ else }}{{ .Full }}{{ end }} \u276f",
           "type": "dotnet"
         },
         {
           "foreground": "#546E7A",
-          "properties": {
-            "template": " \ue718 {{ if .PackageManagerIcon }}{{ .PackageManagerIcon }} {{ end }}{{ .Full }} \u276f"
-          },
           "style": "powerline",
+          "template": " \ue718 {{ if .PackageManagerIcon }}{{ .PackageManagerIcon }} {{ end }}{{ .Full }} \u276f",
           "type": "node"
         },
         {
           "foreground": "#546E7A",
-          "properties": {
-            "template": " \ufcb5 {{ .Name }} "
-          },
           "style": "powerline",
+          "template": " \ufcb5 {{ .Name }} ",
           "type": "shell"
         },
         {
           "foreground": "#D4E157",
-          "foreground_templates": ["{{ if gt .Code 0 }}#FF5252{{ end }}"],
+          "foreground_templates": [
+            "{{ if gt .Code 0 }}#FF5252{{ end }}"
+          ],
           "properties": {
-            "always_enabled": true,
-            "template": "\u276f "
+            "always_enabled": true
           },
           "style": "plain",
+          "template": "\u276f ",
           "type": "exit"
         }
       ],
       "type": "prompt"
     }
   ],
-  "version": 1
+  "version": 2
 }
