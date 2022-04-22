@@ -10,6 +10,10 @@ $env:POSH_GIT_ENABLED = $true;
 oh-my-posh --init --shell pwsh --config "$PSScriptRoot/My-Posh-Theme.json" | Invoke-Expression;
 
 Import-Module Terminal-Icons;
+if (Test-Path 'C:/tools/gsudo/Current/gsudoModule.psd1') {
+    Import-Module 'C:/tools/gsudo/Current/gsudoModule.psd1';
+    Set-Alias 'sudo' 'Invoke-gsudo';
+}
 
 Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
