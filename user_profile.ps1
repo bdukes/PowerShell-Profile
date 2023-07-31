@@ -15,6 +15,10 @@ if (Test-Path 'C:/tools/gsudo/Current/gsudoModule.psd1') {
     Set-Alias 'sudo' 'Invoke-gsudo';
 }
 
+if (Test-Path 'C:\Program Files\Git\usr\bin\bash.exe') {
+    Set-Alias bash 'C:\Program Files\Git\usr\bin\bash.exe';
+}
+
 Set-PSReadlineKeyHandler -Key Tab -Function Complete;
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward;
 Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward;
