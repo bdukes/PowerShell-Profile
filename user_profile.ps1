@@ -1,6 +1,8 @@
 #Requires -Version 3
 #Set-StrictMode -Version Latest
 
+$InformationPreference = 'Continue';
+
 if (Get-Command git -ErrorAction SilentlyContinue) {
     Import-Module posh-git;
 }
