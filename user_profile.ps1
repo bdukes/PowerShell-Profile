@@ -1,5 +1,4 @@
 #Requires -Version 3
-#Requires -Modules VSSetup, posh-git, Terminal-Icons
 #Set-StrictMode -Version Latest
 
 if (Get-Command git -ErrorAction SilentlyContinue) {
@@ -31,6 +30,7 @@ Set-PSReadLineOption -EditMode Windows;
 #Set-Alias sudo Invoke-Elevated;
 Set-Alias rm Remove-ItemSafely -Option AllScope;
 
+Import-Module VSSetup;
 $env:Platform = 'Any CPU';
 $studioInstance = Get-VSSetupInstance -All | Select-VSSetupInstance -Require 'Microsoft.VisualStudio.Workload.NetWeb' -Version 15.0 -Latest;
 if ($studioInstance) {
